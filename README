@@ -1,12 +1,21 @@
-# Micro Time Zone Library
+# μ time zone (library)
 
 A ~3kB timezone library featuring nearly all current timezones present in
 the IANA timezone database. Designed for use on budget embedded systems
 with very low program space.
 
+The C header containing packed timezone information is generated from
+the IANA timezone database.
+
 ## Tradeoffs
+
+All historical timezone information has been pruned to save space.
 
 A limited number of aliases are available. (by default restricted to the
 same set that android uses) In cases where the alias is not available,
 the standard time UTC offset and abbreviation (if present) will be
 displayed.
+
+This library is generally inflexible as it heavily relies on
+assumptions pertaining to timezone offset increments, abbreviation
+formatting, etc to make efficient use of bit packs.
