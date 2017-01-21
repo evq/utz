@@ -1,0 +1,12 @@
+# Micro Time Zone Library
+
+A ~3kB timezone library featuring nearly all current timezones present in
+the IANA timezone database. Designed for use on budget embedded systems
+with very low program space.
+
+## Tradeoffs
+
+A limited number of aliases are available. (by default restricted to the
+same set that android uses) In cases where the alias is not available,
+the standard time UTC offset and abbreviation (if present) will be
+displayed.

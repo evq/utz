@@ -1,0 +1,9 @@
+# Vendored files
+
+## tzdata
+
+[IANA time zone database data only distribution](https://www.iana.org/time-zones)
+
+## android
+
+[Android default timezones list](https://android.googlesource.com/platform/packages/apps/Settings/+/lollipop-release/res/xml/timezones.xml)
