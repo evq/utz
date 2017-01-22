@@ -12,11 +12,13 @@ from sets import Set
 
 CURRENT_YEAR = date.today().year
 LIFETIME_YEARS = 10  # Assume we don't care about rules starting more than 10 years in the future
+MAX_FMT_LEN = 5
 
 TZ_TYPES = ['Rule', 'Zone', 'Link']
 
 DAY_OF_WEEK = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
 
 class Entry(object):
     column_names = ()
@@ -28,7 +30,7 @@ class Entry(object):
         self.values = [None] * self.num_columns
         if args or kwargs:
             self._load(*args, **kwargs)
-            self._src = self.dumps(clazz=False) # default "source" in cases we dont use self.load
+            self._src = self.dumps(clazz=False)  # default "source" in cases we dont use self.load
 
     def __getattr__(self, name):
         return self.values[self.column_names.index(name)]
@@ -50,7 +52,7 @@ class Entry(object):
     def dumps(self, clazz=True):
         tmp = ''
         if clazz:
-            tmp = tmp + self.__class__.__name__ + '\t' 
+            tmp = tmp + self.__class__.__name__ + '\t'
         tmp += '\t'.join(self.values[:self.num_columns-self.num_opt_columns])
         for i in range(self.num_opt_columns):
             j = self.num_columns - self.num_opt_columns + i
@@ -65,6 +67,7 @@ class Entry(object):
         new._load(*split_line)
         new._src = string
         return new
+
 
 def parse_h_m(time):
     z, h, m = ('local', 0, 0)
@@ -83,13 +86,14 @@ def parse_h_m(time):
         h = int(time)
     return z, h, m
 
+
 class Rule(Entry):
     # Rule	NAME	FROM	TO	TYPE	IN	ON	AT	SAVE	LETTER
     column_names = ('name', '_from', 'to', 'type', '_in',
                     'on', 'at', 'save', 'letter',)
 
     def pack(self):
-        """ Pack rule into micro timezone rule format, only works after stripping historical zones and rules """
+        """ Pack rule into micro timezone rule format, only works after stripping historical zones / rules """
         _from = int(self._from) - 1970
         if _from < 0:
             _from = 0
@@ -137,7 +141,7 @@ class Rule(Entry):
                     elif on_d == 0:
                         # the three rule groups that hit this condition are Mongol, Lebanon, and Syria
 
-                        # they rely on lastDOW (e.g. lastSun, unfortunately there 
+                        # they rely on lastDOW (e.g. lastSun, unfortunately there
                         # isn't an easy way to specify lastSun-1 ) as far as I can tell
 
                         # selfishly I'm going to take the hit of being 1 hour off on these 3 zones :/
@@ -153,19 +157,21 @@ class Rule(Entry):
         elif self.letter == 'D':
             l = 2
 
+        # see utz.h for struct definitions
         return "{%3d, %3d, %d, %2d, %2d, %2d, %d, %d, %2d, %d}, // %s" % (
-                _from,  # years since 1970
-                to,     # years since 1970
-                on_u,  # day of week (monday = 1) unless 0, in which case assume format is "dayOfMonth"
-                on_d,  # day of month unless 0, in which case assume format is "last dayOfWeek"
-                at_z,                       # time of day, timezone (UTC / LOCAL)
-                at_H,                       # time of day, hours
-                at_M / 15,                  # time of day, minutes, in 15 minute increments
-                l,                       # (-, S, D)
-                MONTHS.index(self._in)+1, # month
-                off_H,                   # offset in hours
+                _from,                     # years since 1970
+                to,                        # years since 1970
+                on_u,                      # day of week (mon=1) unless 0, then assume format is "dayOfMonth"
+                on_d,                      # day of month unless 0, then assume format is "last dayOfWeek"
+                at_z,                      # time of day, timezone (UTC / LOCAL)
+                at_H,                      # time of day, hours
+                at_M / 15,                 # time of day, minutes, in 15 minute increments
+                l,                         # (-, S, D)
+                MONTHS.index(self._in)+1,  # month
+                off_H,                     # offset in hours
                 self._src,
         )
+
 
 @total_ordering
 class Zone(Entry):
@@ -189,18 +195,18 @@ class Zone(Entry):
         if '%' in fmt:
             fmt = fmt % '%'
         if '+' in fmt or '-' in fmt:
-            fmt = '-' # we will assume there is no abrev and generate from offset
+            fmt = '-'  # we will assume there is no abrev and generate from offset
         if '/' in fmt and 'GMT' in fmt:
-            fmt = fmt[fmt.index('/'):] # assume starts with / means GMT/<foo>
-        if len(fmt) > 4:
-            if '%' in fmt and len(fmt) == 5:
-                fmt = fmt.replace('%', '') # remove daylight savings time formatter char
+            fmt = fmt[fmt.index('/'):]  # assume starts with / means GMT/<foo>
+        if len(fmt) > MAX_FMT_LEN:
+            if '%' in fmt and len(fmt) == MAX_FMT_LEN + 1:
+                fmt = fmt.replace('%', '')  # remove daylight savings time formatter char
             else:
                 fmt = '-'
             print "Unsupported zone, formatter > 4 characters! %s, using %s instead" % (self, fmt)
 
         fmt_a = []
-        for i in range(4):
+        for i in range(MAX_FMT_LEN):
             if len(fmt) > i:
                 fmt_a.append("%4s" % ("'" + fmt[i] + "'"))
             else:
@@ -213,16 +219,6 @@ class Zone(Entry):
             num_rule = len(rule_groups[self.rules])
 
         return "{%3d, %3d, %3d, {%s}}," % ((4 * h) + (m / 15), rule_start, num_rule, ",".join(fmt_a))
-
-        #if micro_zone not in micro_zones:
-            #micro_zones.append(micro_zone)
-            #print micro_zone
-
-        #if '/' in zone[NAME]: # The only zones without / are "legacy aliases" like EST, PST etc
-            # avoid splitting on / yet since we still need to reconcile links
-            #aliases[zone[NAME]] = micro_zones.index(micro_zone)
-    #db['MicroZone'] = micro_zones
-    #db['Alias'] = aliases
 
 
 class Link(Entry):
@@ -278,7 +274,7 @@ class TimeZoneDatabase(object):
             if rule.to == 'only' and int(rule._from) < CURRENT_YEAR:
                 continue
             if ((rule.to == 'max') or (rule.to == 'only') or
-                (int(rule.to) >= CURRENT_YEAR and int(rule._from) <= CURRENT_YEAR + LIFETIME_YEARS)):
+               (int(rule.to) >= CURRENT_YEAR and int(rule._from) <= CURRENT_YEAR + LIFETIME_YEARS)):
                 filtered_rules.append(rule)
                 rule_group_names.add(rule.name)
         self.rules = filtered_rules
@@ -288,7 +284,7 @@ class TimeZoneDatabase(object):
             # We might have pruned all the rules for this zone above
             if zone.rules != '-' and zone.rules not in rule_group_names:
                 zone.rules = '-'
-                if '%' in zone.format: 
+                if '%' in zone.format:
                     zone.format = zone.format % 'S'
 
             if zone.until is None or int(zone.until[:4]) >= CURRENT_YEAR:
@@ -299,7 +295,6 @@ class TimeZoneDatabase(object):
         """ Groups rules by name, also prune orphaned rules"""
 
         rule_groups = {}
-        idx = 0
         for rule in self.rules:
             if rule.name in rule_groups:
                 rule_groups[rule.name].append(rule)
@@ -313,15 +308,18 @@ class TimeZoneDatabase(object):
                 del rule_groups[group]
         return rule_groups
 
-    def pack(self):
-        buf = ['#ifndef _UTZ_ZONES_H', '#define _UTZ_ZONES_H']
+    def pack(self, filename, included_aliases=None):
+        filename = filename.upper().replace('.', '_')
+        buf = ['#ifndef _%s' % filename, '#define _%s' % filename, '', '#include "utz.h"']
         buf.append('')
         rule_groups = self.rule_groups()
         rule_group_starts = self._pack_rules(rule_groups, buf)
         buf.append('')
-        aliases = self._pack_zones(rule_groups, rule_group_starts, buf)
+        zone_indexes = self._pack_zones(rule_groups, rule_group_starts, buf)
         buf.append('')
-        buf.append('#endif /* _UTZ_ZONES_H */')
+        self._pack_links(zone_indexes, buf, included_aliases)
+        buf.append('')
+        buf.append('#endif /* _%s */' % filename)
         return '\n'.join(buf)
 
     def _pack_rules(self, rule_groups, buf):
@@ -333,7 +331,7 @@ class TimeZoneDatabase(object):
             for rule in group:
                 buf.append(rule.pack())
                 idx = idx + 1
-        buf[buf.index('PLACEHOLDER')] = 'urule_t rules[%d] = {' % idx
+        buf[buf.index('PLACEHOLDER')] = 'urule_t zone_rules[%d] = {' % idx
         buf.append('};')
 
         return group_idx
@@ -350,7 +348,7 @@ class TimeZoneDatabase(object):
                 packed_zones[packed_zone].append(zone)
             zone_indexes[zone.name] = packed_zones.keys().index(packed_zone)
 
-        buf.append('uzone_t zones[%d] = {' % len(packed_zones))
+        buf.append('uzone_t zone_defns[%d] = {' % len(packed_zones))
         for packed_zone, srcs in packed_zones.items():
             for src_zone in srcs:
                 buf.append('// ' + src_zone._src)
@@ -358,3 +356,26 @@ class TimeZoneDatabase(object):
         buf.append('};')
 
         return zone_indexes
+
+    def _pack_links(self, zone_indexes, buf, included_aliases=None):
+        for link in self.links:
+            if link._from in zone_indexes:
+                zone_indexes[link.to] = zone_indexes[link._from]
+
+        aliases = {}
+        for name, index in zone_indexes.items():
+            if '/' in name:  # The only zones without / are "legacy aliases" like EST, PST etc
+                if not included_aliases or name in included_aliases:
+                    aliases[name.split('/')[-1]] = index
+
+        buf.append('PLACEHOLDER')
+        total_char = 0
+        for name, index in sorted(aliases.items()):
+            char = []
+            for c in name:
+                char.append(c)
+            char.append('\\0')
+            total_char += len(char) + 1
+            buf.append("%80s, %3d, // %s" % ("'%s'" % "','".join(char), index, name))
+        buf[buf.index('PLACEHOLDER')] = 'char zone_names[%d] = {' % total_char
+        buf.append('};')

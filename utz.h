@@ -10,7 +10,7 @@ typedef struct uzone_t {
    int8_t utc_offset_M; // signed 15 minute increments
    uint8_t rules_idx;  // index into rules array for start of corresponding rules
    uint8_t rules_len;  // number of rule entries
-   char abrev[4];      // abreviation formatter
+   char abrev[5];      // abreviation formatter
 } uzone_t;
 
 typedef struct urule_t {

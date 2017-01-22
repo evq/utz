@@ -19,3 +19,16 @@ displayed.
 This library is generally inflexible as it heavily relies on
 assumptions pertaining to timezone offset increments, abbreviation
 formatting, etc to make efficient use of bit packs.
+
+## Limitations
+
+The current utility library does not support parsing /
+packing all possible syntax of the source IANA tz database. 
+Instead a subset corresponding to the what is needed to correctly parse  
+most zones is implemented.
+
+## Links
+
+[zic man page and IANA tz database format documentation](https://linux.die.net/man/8/zic)
+
+[vendored files](./vendor)
