@@ -373,7 +373,10 @@ class TimeZoneDatabase(object):
         for name, index in sorted(aliases.items()):
             char = []
             for c in name:
-                char.append(c)
+                if c == "'":
+                    char.append("\\'")
+                else:
+                    char.append(c)
             char.append('\\0')
             total_char += len(char) + 1
             buf.append("%80s, %3d, // %s" % ("'%s'" % "','".join(char), index, name))

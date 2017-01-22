@@ -743,7 +743,7 @@ char zone_names[1267] = {
                                                 'W','e','n','z','h','o','u','\0',  86, // Wenzhou
                                             'W','i','n','d','h','o','e','k','\0',  12, // Windhoek
                                                         'W','u','h','a','n','\0',  86, // Wuhan
-                                                        'X','i',''','a','n','\0',  86, // Xi'an
+                                                       'X','i','\'','a','n','\0',  86, // Xi'an
                                                 'Y','a','k','u','t','s','k','\0',  66, // Yakutsk
                         'Y','e','k','a','t','e','r','i','n','b','u','r','g','\0',  59, // Yekaterinburg
                                                 'Y','e','r','e','v','a','n','\0',  61, // Yerevan
