@@ -11,7 +11,6 @@ from functools import total_ordering
 from sets import Set
 
 CURRENT_YEAR = date.today().year
-LIFETIME_YEARS = 10  # Assume we don't care about rules starting more than 10 years in the future
 MAX_FMT_LEN = 5
 
 TZ_TYPES = ['Rule', 'Zone', 'Link']
@@ -94,7 +93,7 @@ class Rule(Entry):
 
     def pack(self):
         """ Pack rule into micro timezone rule format, only works after stripping historical zones / rules """
-        _from = int(self._from) - 1970
+        _from = int(self._from) - 2000
         if _from < 0:
             _from = 0
 
@@ -103,7 +102,7 @@ class Rule(Entry):
         elif self.to == 'max':
             to = 255
         else:
-            to = int(self.to) - 1970
+            to = int(self.to) - 2000
 
         on_u = 0
         on_d = 0
@@ -159,8 +158,8 @@ class Rule(Entry):
 
         # see utz.h for struct definitions
         return "{%3d, %3d, %d, %2d, %2d, %2d, %d, %d, %2d, %d}, // %s" % (
-                _from,                     # years since 1970
-                to,                        # years since 1970
+                _from,                     # years since 2000
+                to,                        # years since 2000
                 on_u,                      # day of week (mon=1) unless 0, then assume format is "dayOfMonth"
                 on_d,                      # day of month unless 0, then assume format is "last dayOfWeek"
                 at_z,                      # time of day, timezone (UTC / LOCAL)
@@ -273,8 +272,7 @@ class TimeZoneDatabase(object):
         for rule in self.rules:
             if rule.to == 'only' and int(rule._from) < CURRENT_YEAR:
                 continue
-            if ((rule.to == 'max') or (rule.to == 'only') or
-               (int(rule.to) >= CURRENT_YEAR and int(rule._from) <= CURRENT_YEAR + LIFETIME_YEARS)):
+            if ((rule.to == 'max') or (rule.to == 'only') or (int(rule.to) >= CURRENT_YEAR)):
                 filtered_rules.append(rule)
                 rule_group_names.add(rule.name)
         self.rules = filtered_rules
@@ -331,7 +329,7 @@ class TimeZoneDatabase(object):
             for rule in group:
                 buf.append(rule.pack())
                 idx = idx + 1
-        buf[buf.index('PLACEHOLDER')] = 'urule_t zone_rules[%d] = {' % idx
+        buf[buf.index('PLACEHOLDER')] = 'urule_packed_t zone_rules[%d] = {' % idx
         buf.append('};')
 
         return group_idx
@@ -348,7 +346,7 @@ class TimeZoneDatabase(object):
                 packed_zones[packed_zone].append(zone)
             zone_indexes[zone.name] = packed_zones.keys().index(packed_zone)
 
-        buf.append('uzone_t zone_defns[%d] = {' % len(packed_zones))
+        buf.append('uzone_packed_t zone_defns[%d] = {' % len(packed_zones))
         for packed_zone, srcs in packed_zones.items():
             for src_zone in srcs:
                 buf.append('// ' + src_zone._src)
@@ -370,15 +368,21 @@ class TimeZoneDatabase(object):
 
         buf.append('PLACEHOLDER')
         total_char = 0
+        max_len = 0
         for name, index in sorted(aliases.items()):
             char = []
+            name = name.replace('_', ' ')
             for c in name:
                 if c == "'":
                     char.append("\\'")
                 else:
                     char.append(c)
+                    if len(char) > max_len:
+                        max_len = len(char)
             char.append('\\0')
             total_char += len(char) + 1
             buf.append("%80s, %3d, // %s" % ("'%s'" % "','".join(char), index, name))
         buf[buf.index('PLACEHOLDER')] = 'char zone_names[%d] = {' % total_char
         buf.append('};')
+        buf.append('')
+        buf.append('#define NUM_ZONE_NAMES %d' % len(aliases))
