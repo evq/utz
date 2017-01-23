@@ -141,10 +141,10 @@ typedef struct urule_packed_t {
 typedef struct uzone_t {
   char name[MAX_ZONE_NAME_LEN+1];
   uoffset_t offset;
-  urule_packed_t* rules;
+  const urule_packed_t* rules;
   uint8_t rules_len;
   char abrev_formatter[MAX_ABREV_FORMATTER_LEN+1];
-  uzone_packed_t* src;
+  const uzone_packed_t* src;
 } uzone_t;
 
 /** @brief unpacked rule type, rules for daylight savings time */
@@ -166,19 +166,21 @@ typedef struct urule_t {
 /**************************************************************************/
 
 /** @brief lookup table for the number of days in a given month when the year is not a leap year */
-static uint8_t days_in_month_nonleap[13] = {0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+static const uint8_t days_in_month_nonleap[13] = {0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
 /** @brief lookup table name of the days of week */
-static char* days_of_week[8] = {"0", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"};
+static const char* days_of_week[8] = {"0", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"};
+
+static const uint8_t dayofweek_table[] = {0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4};
 
 /** @brief cached rules for the zone and year from the last call of get_current_offset */
 static urule_t cached_rules[MAX_CURRENT_RULES];
 
 /** @brief the zone pointer from the last call of get_current_offset */
-static uzone_packed_t* last_zone = 0;
+static const uzone_packed_t* last_zone;
 
 /** @brief the year (1 <= y <= 255 (2001 - 2255)) from the last call of get_current_offset */
-static uint8_t last_year = 0;
+static uint8_t last_year;
 
 /**************************************************************************/
 /*                         datetime functions                             */
@@ -281,15 +283,7 @@ uint8_t udatetime_ge(udatetime_t* dt1, udatetime_t* dt2);
  *  @param rule_out pointer for the output unpacked rule
  *  @return void
  */
-void unpack_rule(urule_packed_t* rule_in, uint8_t cur_year, urule_t* rule_out);
-
-/** @brief sort rule in place
- *
- *  @param rules pointer to rules
- *  @param num_rules the number of rules in the array
- *  @return void
- */
-void sort_rules(urule_t* rules, uint8_t num_rules);
+void unpack_rule(const urule_packed_t* rule_in, uint8_t cur_year, urule_t* rule_out);
 
 /** @brief unpack rules that are active in the current year
  *
@@ -301,9 +295,7 @@ void sort_rules(urule_t* rules, uint8_t num_rules);
  *  @param rules_out pointer for the output unpacked rules
  *  @return void
  */
-// cur_year differs if rule is local time or UTC referenced...
-// we should be fine since zones using UTC referenced are generally sane
-void unpack_rules(urule_packed_t* rules_in, uint8_t num_rules, uint8_t cur_year, urule_t* rules_out);
+void unpack_rules(const urule_packed_t* rules_in, uint8_t num_rules, uint8_t cur_year, urule_t* rules_out);
 
 /** @brief get the rule that applies at datetime
  *
@@ -329,14 +321,21 @@ char get_current_offset(uzone_t* zone, udatetime_t* datetime, uoffset_t* offset)
  *  @param zone_in pointer to output unpacked zone
  *  @return void
  */
-void unpack_zone(uzone_packed_t* zone_in, char* name, uzone_t* zone_out);
+void unpack_zone(const uzone_packed_t* zone_in, char* name, uzone_t* zone_out);
 
 /** @brief advance pointer to list of zone names and returns the prev index into the zone definitions array
  *
  *  @param list pointer to pointer into zone names list
  *  @return index into the zone definitions array for the zone name before advancement
  */
-uint8_t next_packed_zone(char** list);
+uint8_t next_packed_zone(const char** list);
 
+/** @brief lookup a zone via zone_names
+ *
+ *  @param name the name of the zone to find
+ *  @param zone_out pointer for zone found
+ *  @return void
+ */
 void get_zone_by_name(char* name, uzone_t* zone_out);
+
 #endif /* _UTZ_H */

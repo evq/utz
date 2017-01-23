@@ -9,7 +9,7 @@
 #include "utz.h"
 #include "zones.h"
 
-static uint8_t ustrneq(char* string1, char* string2, uint8_t n) {
+static uint8_t ustrneq(const char* string1, const char* string2, uint8_t n) {
   uint8_t i;
   for (i = 0; i < n && string1[i] != '\0' && string2[i] != '\0'; i++) {
     if (string1[i] != string2[i]) {
@@ -19,7 +19,7 @@ static uint8_t ustrneq(char* string1, char* string2, uint8_t n) {
   return UTRUE;
 }
 
-static char* ustrncpy(char* dest, char* src, uint8_t n) {
+static char* ustrncpy(char* dest, const char* src, uint8_t n) {
   uint8_t i;
   for (i = 0; i < n; i++) {
     dest[i] = src[i];
@@ -37,6 +37,7 @@ void bin_to_bcd(uint32_t* raw) {
     ptr[i] = ((ptr[i] / 10) << 4) | (ptr[i] % 10);
   }
 }
+
 void bcd_to_bin(uint32_t* raw) {
   uint8_t i;
   uint8_t* ptr = (uint8_t*) raw;
@@ -46,14 +47,17 @@ void bcd_to_bin(uint32_t* raw) {
 }
 
 uint8_t dayofweek(uint8_t y, uint8_t m, uint8_t d) {
-    static uint8_t t[] = {0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4};
     y -= m < 3;
-    d = ((UYEAR_TO_YEAR(y) + (UYEAR_TO_YEAR(y)/4) - (UYEAR_TO_YEAR(y)/100) + UYEAR_OFFSET/400 + t[m-1] + d) % 7);
+    d = ((UYEAR_TO_YEAR(y) + (UYEAR_TO_YEAR(y)/4) - (UYEAR_TO_YEAR(y)/100) + UYEAR_OFFSET/400 + dayofweek_table[m-1] + d) % 7);
     if (d == 0) { return 7; } else { return d; }
 }
 
 uint8_t is_leap_year(uint8_t y) {
+#if UYEAR_OFFSET == 2000
+  if (y & 0x03 && y != 100 || y != 200) {
+#else
   if ((((UYEAR_TO_YEAR(y) % 4) == 0) && ((UYEAR_TO_YEAR(y) % 100) != 0)) || ((UYEAR_TO_YEAR(y) % 400) == 0)) {
+#endif
     return UTRUE;
   }
   return UFALSE;
@@ -71,27 +75,11 @@ uint8_t next_dayofweek_offset(uint8_t dayofweek_of_cur, uint8_t dayofweek) {
   return (7 + dayofweek - dayofweek_of_cur) % 7;
 }
 
-uint8_t udatetime_eq(udatetime_t* dt1, udatetime_t* dt2) {
-  return dt1->date.raw == dt2->date.raw && dt1->time.raw == dt2->time.raw;
-}
-uint8_t udatetime_lt(udatetime_t* dt1, udatetime_t* dt2) {
-  return (dt1->date.raw < dt2->date.raw || 
-         (dt1->date.raw == dt2->date.raw && dt1->time.raw < dt2->time.raw));
-}
-uint8_t udatetime_le(udatetime_t* dt1, udatetime_t* dt2) {
-  return (dt1->date.raw < dt2->date.raw || 
-         (dt1->date.raw == dt2->date.raw && dt1->time.raw <= dt2->time.raw));
-}
-uint8_t udatetime_gt(udatetime_t* dt1, udatetime_t* dt2) {
-  return (dt1->date.raw > dt2->date.raw || 
-         (dt1->date.raw == dt2->date.raw && dt1->time.raw > dt2->time.raw));
-}
-uint8_t udatetime_ge(udatetime_t* dt1, udatetime_t* dt2) {
-  return (dt1->date.raw > dt2->date.raw || 
-         (dt1->date.raw == dt2->date.raw && dt1->time.raw >= dt2->time.raw));
+int8_t udatetime_cmp(udatetime_t* dt1, udatetime_t* dt2) {
+  return dt1->date.raw - dt2->date.raw || dt1->time.raw - dt2->time.raw;
 }
 
-void unpack_rule(urule_packed_t* rule_in, uint8_t cur_year, urule_t* rule_out) {
+void unpack_rule(const urule_packed_t* rule_in, uint8_t cur_year, urule_t* rule_out) {
   uint8_t dayofweek_of_first_dayofmonth;
   uint8_t first_dayofweek;
   uint8_t dayofweek_of_dayofmonth;
@@ -142,60 +130,35 @@ static void rulecpy(urule_t* dest, urule_t* src) {
   dest->offset_hours = src->offset_hours;
 }
 
-void sort_rules(urule_t* rules, uint8_t num_rules) {
+void unpack_rules(const urule_packed_t* rules_in, uint8_t num_rules, uint8_t cur_year, urule_t* rules_out) {
   uint8_t i;
-  uint8_t swapped = UTRUE;
-  urule_t tmp_current_rule;
-
-  while(swapped) {
-    swapped = UFALSE;
-    for (i = 1; i < num_rules; i++) {
-      if (rules[i-1].date.raw > rules[i].date.raw) {
-        rulecpy(&tmp_current_rule, &rules[i-1]);
-        rulecpy(&rules[i-1], &rules[i]);
-        rulecpy(&rules[i], &tmp_current_rule);
-        swapped = UTRUE;
-      }
-    }
-  }
-}
-
-void unpack_rules(urule_packed_t* rules_in, uint8_t num_rules, uint8_t cur_year, urule_t* rules_out) {
-  uint8_t i = 0;
   int8_t l = 0;
-  uint8_t current_rule_count = 0;
+  uint8_t current_rule_count = 1;
 
-  // First lets find the "last" rule of the previous year, for simplification 
-  // this assumes that multiple rules don't apply to the same month
-  for (i = 1; i < num_rules; i++) {
-    if (cur_year - 1 >= rules_in[i].from_year && cur_year - 1 <= rules_in[i].to_year) {
+  for (i = 0; i < num_rules && current_rule_count < MAX_CURRENT_RULES; i++) {
+    // First lets find the "last" rule of the previous year, for simplification 
+    // this assumes that multiple rules don't apply to the same month and
+    // that the offset would not change between years (just the day of effect)
+    if (cur_year >= rules_in[i].from_year && cur_year <= rules_in[i].to_year) {
       if (rules_in[i].in_month > rules_in[l].in_month) {
         l = i;
       }
-    }
-  }
-  unpack_rule(&rules_in[l], cur_year, &rules_out[current_rule_count]);
-  // We override the "last" rule time of effect to be the start of the current year
-  rules_out[current_rule_count].date.raw = 0;
-  rules_out[current_rule_count].date.year = cur_year;
-  rules_out[current_rule_count].date.month = 1;
-  rules_out[current_rule_count].date.dayofmonth = 1;
-  rules_out[current_rule_count].time.raw = 0;
-  current_rule_count++;
-
-  for (i = 0; i < num_rules && current_rule_count < MAX_CURRENT_RULES; i++) {
-    if (cur_year >= rules_in[i].from_year && cur_year <= rules_in[i].to_year) {
       unpack_rule(&rules_in[i], cur_year, &rules_out[current_rule_count++]);
     }
   }
 
-  sort_rules(rules_out, current_rule_count);
+  unpack_rule(&rules_in[l], cur_year, rules_out);
+  // We override the "last" rule time of effect to be the start of the current year
+  rules_out->date.year = cur_year;
+  rules_out->date.month = 1;
+  rules_out->date.dayofmonth = 1;
+  rules_out->time.raw = 0;
 }
 
 urule_t* get_active_rule(urule_t* rules, udatetime_t* datetime) {
   int8_t i = 0;
   for (i = 1; i < MAX_CURRENT_RULES; i++) {
-    if (!RULE_IS_VALID(rules[i]) || udatetime_lt(datetime, &(rules[i].datetime))) {
+    if (!RULE_IS_VALID(rules[i]) || udatetime_cmp(datetime, &(rules[i].datetime)) < 0) {
       return &rules[i-1];
     }
   }
@@ -217,18 +180,18 @@ char get_current_offset(uzone_t* zone, udatetime_t* datetime, uoffset_t* offset)
   return rule->letter;
 }
 
-void unpack_zone(uzone_packed_t* zone_in, char* name, uzone_t* zone_out) {
+void unpack_zone(const uzone_packed_t* zone_in, char* name, uzone_t* zone_out) {
   zone_out->src = zone_in;
   ustrncpy(zone_out->name, name, MAX_ZONE_NAME_LEN);
 
   zone_out->offset.minutes = (zone_in->offset_inc_minutes % (60 / OFFSET_INCREMENT)) * OFFSET_INCREMENT;
   zone_out->offset.hours = zone_in->offset_inc_minutes / (60 / OFFSET_INCREMENT);
-  zone_out->rules = &zone_rules[zone_in->rules_idx];
+  zone_out->rules = &(zone_rules[zone_in->rules_idx]);
   zone_out->rules_len = zone_in->rules_len;
   ustrncpy(zone_out->abrev_formatter, zone_in->abrev_formatter, MAX_ABREV_FORMATTER_LEN);
 }
 
-uint8_t next_packed_zone(char** list) {
+uint8_t next_packed_zone(const char** list) {
   while(1) {
     if (*(*list) == '\0') {
       (*list)++;
@@ -241,7 +204,7 @@ uint8_t next_packed_zone(char** list) {
 void get_zone_by_name(char* name, uzone_t* zone_out) {
   uint16_t i;
   uint8_t zone_idx = 0;
-  char* zone = zone_names;
+  const char* zone = zone_names;
   for (i = 0; i < NUM_ZONE_NAMES; i++) {
     if (ustrneq(zone, name, MAX_ZONE_NAME_LEN)) {
       unpack_zone(&zone_defns[next_packed_zone(&zone)], name, zone_out);

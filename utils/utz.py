@@ -186,7 +186,7 @@ class Zone(Entry):
 
     def pack(self, rule_groups, rule_group_starts):
         if self.until is not None:
-            print self
+            print self  # FIXME warnings
 
         _, h, m = parse_h_m(self.gmtoff)
 
@@ -326,10 +326,11 @@ class TimeZoneDatabase(object):
         idx = 0
         for name, group in sorted(rule_groups.items()):
             group_idx[name] = idx
-            for rule in group:
+            # Assumes only one rule per month
+            for rule in sorted(group, key=lambda x: MONTHS.index(x._in)):
                 buf.append(rule.pack())
                 idx = idx + 1
-        buf[buf.index('PLACEHOLDER')] = 'urule_packed_t zone_rules[%d] = {' % idx
+        buf[buf.index('PLACEHOLDER')] = 'static const urule_packed_t zone_rules[%d] = {' % idx
         buf.append('};')
 
         return group_idx
@@ -346,7 +347,7 @@ class TimeZoneDatabase(object):
                 packed_zones[packed_zone].append(zone)
             zone_indexes[zone.name] = packed_zones.keys().index(packed_zone)
 
-        buf.append('uzone_packed_t zone_defns[%d] = {' % len(packed_zones))
+        buf.append('static const uzone_packed_t zone_defns[%d] = {' % len(packed_zones))
         for packed_zone, srcs in packed_zones.items():
             for src_zone in srcs:
                 buf.append('// ' + src_zone._src)
@@ -382,7 +383,7 @@ class TimeZoneDatabase(object):
             char.append('\\0')
             total_char += len(char) + 1
             buf.append("%80s, %3d, // %s" % ("'%s'" % "','".join(char), index, name))
-        buf[buf.index('PLACEHOLDER')] = 'unsigned char zone_names[%d] = {' % total_char
+        buf[buf.index('PLACEHOLDER')] = 'static const unsigned char zone_names[%d] = {' % total_char
         buf.append('};')
         buf.append('')
         buf.append('#define NUM_ZONE_NAMES %d' % len(aliases))
