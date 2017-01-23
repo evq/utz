@@ -1,8 +1,8 @@
 # μ time zone (library)
 
-A ~3kB timezone library featuring nearly all current timezones present in
-the IANA timezone database. Designed for use on budget embedded systems
-with very low program space.
+An embedded timezone library and ~3kB tzinfo database featuring nearly 
+all current timezones present in the IANA timezone database. 
+Designed for use on budget embedded systems with low program space.
 
 The C header containing packed timezone information is generated from
 the IANA timezone database.

@@ -7,6 +7,8 @@
 #ifndef _UTZ_H
 #define _UTZ_H
 
+#include <stdint.h>
+
 #define UTRUE 1
 #define UFALSE 0
 
