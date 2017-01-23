@@ -625,7 +625,7 @@ uzone_packed_t zone_defns[165] = {
 { 48,   0,   0, { 'W', 'F', 'T','\0','\0'}},
 };
 
-char zone_names[1267] = {
+unsigned char zone_names[1267] = {
                                             'A','d','e','l','a','i','d','e','\0', 107, // Adelaide
                                         'A','h','m','e','d','a','b','a','d','\0',  84, // Ahmedabad
                                                     'A','l','m','a','t','y','\0',  56, // Almaty

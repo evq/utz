@@ -382,7 +382,7 @@ class TimeZoneDatabase(object):
             char.append('\\0')
             total_char += len(char) + 1
             buf.append("%80s, %3d, // %s" % ("'%s'" % "','".join(char), index, name))
-        buf[buf.index('PLACEHOLDER')] = 'char zone_names[%d] = {' % total_char
+        buf[buf.index('PLACEHOLDER')] = 'unsigned char zone_names[%d] = {' % total_char
         buf.append('};')
         buf.append('')
         buf.append('#define NUM_ZONE_NAMES %d' % len(aliases))
