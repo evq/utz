@@ -184,32 +184,28 @@ class Zone(Entry):
     def __lt__(self, other):
         return self.name < other.name
 
-    def pack(self, rule_groups, rule_group_starts):
+    def pack(self, rule_groups, rule_group_starts, formatters):
         if self.until is not None:
             print self  # FIXME warnings
 
         _, h, m = parse_h_m(self.gmtoff)
 
-        fmt = self.format
-        if '%' in fmt:
-            fmt = fmt % '%'
-        if '+' in fmt or '-' in fmt:
-            fmt = '-'  # we will assume there is no abrev and generate from offset
-        if '/' in fmt and 'GMT' in fmt:
-            fmt = fmt[fmt.index('/'):]  # assume starts with / means GMT/<foo>
-        if len(fmt) > MAX_FMT_LEN:
-            if '%' in fmt and len(fmt) == MAX_FMT_LEN + 1:
-                fmt = fmt.replace('%', '')  # remove daylight savings time formatter char
-            else:
-                fmt = '-'
-            print "Unsupported zone, formatter > 4 characters! %s, using %s instead" % (self, fmt)
+        #fmt = self.format
+        #if '+' in fmt or '-' in fmt:
+            #fmt = '-'  # we will assume there is no abrev and generate from offset
+        #if '/' in fmt and 'GMT' in fmt:
+            #fmt = fmt[fmt.index('/'):]  # assume starts with / means GMT/<foo>
+        fmt = 0
+        if self.format in formatters:
+            fmt = formatters[self.format]['start']
 
-        fmt_a = []
-        for i in range(MAX_FMT_LEN):
-            if len(fmt) > i:
-                fmt_a.append("%4s" % ("'" + fmt[i] + "'"))
-            else:
-                fmt_a.append("%4s" % "'\\0'")
+
+        #fmt_a = []
+        #for i in range(MAX_FMT_LEN):
+            #if len(fmt) > i:
+                #fmt_a.append("%4s" % ("'" + fmt[i] + "'"))
+            #else:
+                #fmt_a.append("%4s" % "'\\0'")
 
         rule_start = 0
         num_rule = 0
@@ -217,7 +213,7 @@ class Zone(Entry):
             rule_start = rule_group_starts[self.rules]
             num_rule = len(rule_groups[self.rules])
 
-        return "{%3d, %3d, %3d, {%s}}," % ((4 * h) + (m / 15), rule_start, num_rule, ",".join(fmt_a))
+        return "{%3d, %3d, %3d, %3d}," % ((4 * h) + (m / 15), rule_start, num_rule, fmt)
 
 
 class Link(Entry):
@@ -306,84 +302,126 @@ class TimeZoneDatabase(object):
                 del rule_groups[group]
         return rule_groups
 
-    def pack(self, filename, included_aliases=None):
-        filename = filename.upper().replace('.', '_')
-        buf = ['#ifndef _%s' % filename, '#define _%s' % filename, '', '#include "utz.h"']
-        buf.append('')
-        rule_groups = self.rule_groups()
-        rule_group_starts = self._pack_rules(rule_groups, buf)
-        buf.append('')
-        zone_indexes = self._pack_zones(rule_groups, rule_group_starts, buf)
-        buf.append('')
-        self._pack_links(zone_indexes, buf, included_aliases)
-        buf.append('')
-        buf.append('#endif /* _%s */' % filename)
-        return '\n'.join(buf)
+    def pack(self, h_filename, included_aliases=None):
+        whitelisted_zones = []
+        for alias in included_aliases:
+            for link in self.links:
+                if link.to == alias or link._from == alias:
+                    whitelisted_zones.append(link._from)
 
-    def _pack_rules(self, rule_groups, buf):
-        buf.append('PLACEHOLDER')
+        whitelisted_rules = []
+        zones = []
+        for zone in self.zones:
+            if zone.name in whitelisted_zones:
+                zones.append(zone)
+                if zone.rules != '-':
+                    whitelisted_rules.append(zone.rules)
+        self.zones = zones
+
+        rules = []
+        for ruleset in self.rules:
+            if ruleset.name in whitelisted_rules:
+                rules.append(ruleset)
+        self.rules = rules
+
+        h_filename = h_filename.upper().replace('.', '_')
+        h_buf = ['#ifndef _%s' % h_filename, '#define _%s' % h_filename, '']
+        c_buf = ['#include "utz.h"', '']
+        rule_groups = self.rule_groups()
+        rule_group_starts = self._pack_rules(rule_groups, c_buf, h_buf)
+        c_buf.append('')
+        zone_indexes = self._pack_zones(rule_groups, rule_group_starts, c_buf, h_buf)
+        c_buf.append('')
+        self._pack_links(zone_indexes, c_buf, h_buf, included_aliases)
+        c_buf.append('')
+        h_buf.append('#endif /* _%s */' % h_filename)
+        return ('\n'.join(c_buf), '\n'.join(h_buf))
+
+    def _pack_rules(self, rule_groups, c_buf, h_buf):
+        c_buf.append('PLACEHOLDER')
         group_idx = {}
         idx = 0
         for name, group in sorted(rule_groups.items()):
             group_idx[name] = idx
             # Assumes only one rule per month
             for rule in sorted(group, key=lambda x: MONTHS.index(x._in)):
-                buf.append(rule.pack())
+                c_buf.append(rule.pack())
                 idx = idx + 1
-        buf[buf.index('PLACEHOLDER')] = 'static const urule_packed_t zone_rules[%d] = {' % idx
-        buf.append('};')
+        c_buf[c_buf.index('PLACEHOLDER')] = 'const urule_packed_t zone_rules[%d] = {' % idx
+        c_buf.append('};')
 
         return group_idx
 
-    def _pack_zones(self, rule_groups, rule_group_starts, buf):
+    def _pack_zones(self, rule_groups, rule_group_starts, c_buf, h_buf):
         packed_zones = OrderedDict()
+        packed_formatters = OrderedDict()
         zone_indexes = {}
 
         for zone in sorted(self.zones):
-            packed_zone = zone.pack(rule_groups, rule_group_starts)
+            fmt = zone.format
+            if fmt not in packed_formatters:
+                packed_formatters[fmt] = {'fmt': fmt}
+
+        c_buf.append('const char zone_abrevs[] = {')
+        i = 0
+        for orig_fmt, packed_fmt in packed_formatters.items():
+            packed_formatters[orig_fmt]['start'] = i
+            c_buf.append("'%s','\\0'," % "','".join([c for c in packed_fmt['fmt']]))
+            i += len(packed_fmt) + 1
+        c_buf.append('};')
+        c_buf.append('')
+
+        for zone in sorted(self.zones):
+            packed_zone = zone.pack(rule_groups, rule_group_starts, packed_formatters)
             if packed_zone not in packed_zones:
                 packed_zones[packed_zone] = [zone]
             else:
                 packed_zones[packed_zone].append(zone)
             zone_indexes[zone.name] = packed_zones.keys().index(packed_zone)
 
-        buf.append('static const uzone_packed_t zone_defns[%d] = {' % len(packed_zones))
+        c_buf.append('const uzone_packed_t zone_defns[%d] = {' % len(packed_zones))
         for packed_zone, srcs in packed_zones.items():
             for src_zone in srcs:
-                buf.append('// ' + src_zone._src)
-            buf.append(packed_zone)
-        buf.append('};')
+                c_buf.append('// ' + src_zone._src)
+            c_buf.append(packed_zone)
+        c_buf.append('};')
 
         return zone_indexes
 
-    def _pack_links(self, zone_indexes, buf, included_aliases=None):
+    def _pack_links(self, zone_indexes, c_buf, h_buf, included_aliases=None):
         for link in self.links:
             if link._from in zone_indexes:
                 zone_indexes[link.to] = zone_indexes[link._from]
 
         aliases = {}
+        max_len = 0
         for name, index in zone_indexes.items():
             if '/' in name:  # The only zones without / are "legacy aliases" like EST, PST etc
                 if not included_aliases or name in included_aliases:
-                    aliases[name.split('/')[-1]] = index
+                    name = name.split('/')[-1]
+                    aliases[name] = index
+                    if len(name) > max_len:
+                        max_len = len(name)
 
-        buf.append('PLACEHOLDER')
+        c_buf.append('PLACEHOLDER')
         total_char = 0
-        max_len = 0
-        for name, index in sorted(aliases.items()):
+        for i, (name, index) in enumerate(sorted(aliases.items())):
             char = []
-            name = name.replace('_', ' ')
+            orig_name = name
+            name = name.replace("'", '')
+            name = name.replace("-", '')
+            name = name.replace(".", '')
+            name = name.replace(",", '')
+            h_buf.append(("#define UTZ_" + name.upper() + ' '*(max_len+4-len(name)) + '&zone_defns[%3d]') % index)
+            name = orig_name.replace('_', ' ')
             for c in name:
                 if c == "'":
                     char.append("\\'")
                 else:
                     char.append(c)
-                    if len(char) > max_len:
-                        max_len = len(char)
             char.append('\\0')
             total_char += len(char) + 1
-            buf.append("%80s, %3d, // %s" % ("'%s'" % "','".join(char), index, name))
-        buf[buf.index('PLACEHOLDER')] = 'static const unsigned char zone_names[%d] = {' % total_char
-        buf.append('};')
-        buf.append('')
-        buf.append('#define NUM_ZONE_NAMES %d' % len(aliases))
+            c_buf.append(("%" + str(max_len*5) + "s, %3d, // %s") % ( "'%s'" % "','".join(char), index, name))
+        c_buf[c_buf.index('PLACEHOLDER')] = 'const unsigned char zone_names[%d] = {' % total_char
+        c_buf.append('};')
+        h_buf.extend(['', '#define NUM_ZONE_NAMES %d' % len(aliases), ''])

@@ -9,23 +9,26 @@
 
 #include <stdint.h>
 
+/**************************************************************************/
+/*                              constants                                 */
+/**************************************************************************/
+
 #define UTRUE 1
 #define UFALSE 0
 
 #define UYEAR_OFFSET 2000
+#define UYEAR_OFFSET_SEC 946684800
 #define UYEAR_FROM_YEAR(y) (y - UYEAR_OFFSET)
 #define UYEAR_TO_YEAR(y) (y + UYEAR_OFFSET)
 
 #define OFFSET_INCREMENT 15 // Minutes
 
-#define MAX_ABREV_FORMATTER_LEN 5
-#define MAX_ZONE_NAME_LEN 16
+#define MAX_ZONE_NAME_LEN 15
 #define MAX_CURRENT_RULES 4 + 1 // Fuck Morocco
 
-#define RULE_IS_VALID(r) ((r).letter != 0)
+#define DAYS_IN_LEAP_YEAR 366
 
-#define S 1
-#define D 2
+#define RULE_IS_VALID(r) ((r).letter != 0)
 
 /**************************************************************************/
 /*                          struct definitions                            */
@@ -42,15 +45,9 @@
  *  @var utime_t::raw for comparisons and conversions
  */
 typedef struct utime_t {
-  union {
-    struct {
-      uint8_t second;
-      uint8_t minute;
-      uint8_t hour;
-      uint8_t padding;
-    };
-    uint32_t raw;
-  };
+  uint8_t hour;
+  uint8_t minute;
+  uint8_t second;
 } utime_t;
 
 // reverse for big endian comparisons via raw?
@@ -65,23 +62,17 @@ typedef struct utime_t {
  *  @var udate_t::raw for comparisons and conversions
  */
 typedef struct udate_t {
+  uint8_t year;       // 00-99 or 0x00-0x99 in bcd mode (offset 2000 ???)
+  uint8_t month;      // 01-12 or 0x01-0x12 in bcd mode
+  uint8_t dayofmonth; // 01-31 or 0x01-0x31 in bcd mode
   uint8_t dayofweek;
-  union {
-    struct {
-      uint8_t dayofmonth; // 01-31 or 0x01-0x31 in bcd mode
-      uint8_t month;      // 01-12 or 0x01-0x12 in bcd mode
-      uint8_t year;       // 00-99 or 0x00-0x99 in bcd mode (offset 2000 ???)
-      uint8_t padding;    // unused space to pad to 4 bytes
-    };
-    uint32_t raw;         // raw field for comparisons and conversions
-  };
 } udate_t;
 
 
 /** @brief datetime type */
 typedef struct udatetime_t {
-  utime_t time;
   udate_t date;
+  utime_t time;
 } udatetime_t;
 
 /** @brief timezone offset type */
@@ -102,7 +93,7 @@ typedef struct uzone_packed_t {
   int8_t offset_inc_minutes;
   uint8_t rules_idx;
   uint8_t rules_len;
-  char abrev_formatter[MAX_ABREV_FORMATTER_LEN];
+  uint16_t abrev_formatter;
 } uzone_packed_t;
 
 /** @struct urule_packed_t
@@ -139,11 +130,11 @@ typedef struct urule_packed_t {
 
 /** @brief unpacked zone type */
 typedef struct uzone_t {
-  char name[MAX_ZONE_NAME_LEN+1];
+  const char* name;
   uoffset_t offset;
   const urule_packed_t* rules;
   uint8_t rules_len;
-  char abrev_formatter[MAX_ABREV_FORMATTER_LEN+1];
+  const char* abrev_formatter;
   const uzone_packed_t* src;
 } uzone_t;
 
@@ -152,35 +143,14 @@ typedef struct urule_t {
   union {
     udatetime_t datetime;
     struct {
-      utime_t time;
       udate_t date;
+      utime_t time;
     };
   };
   uint8_t is_local_time;
   char letter;
   uint8_t offset_hours;
 } urule_t;
-
-/**************************************************************************/
-/*                                globals                                 */
-/**************************************************************************/
-
-/** @brief lookup table for the number of days in a given month when the year is not a leap year */
-static const uint8_t days_in_month_nonleap[13] = {0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-
-/** @brief lookup table name of the days of week */
-static const char* days_of_week[8] = {"0", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"};
-
-static const uint8_t dayofweek_table[] = {0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4};
-
-/** @brief cached rules for the zone and year from the last call of get_current_offset */
-static urule_t cached_rules[MAX_CURRENT_RULES];
-
-/** @brief the zone pointer from the last call of get_current_offset */
-static const uzone_packed_t* last_zone;
-
-/** @brief the year (1 <= y <= 255 (2001 - 2255)) from the last call of get_current_offset */
-static uint8_t last_year;
 
 /**************************************************************************/
 /*                         datetime functions                             */
@@ -191,14 +161,14 @@ static uint8_t last_year;
  *  @param pointer to the raw field of a udate_t or utime_t
  *  @return void
  */
-void bin_to_bcd(uint32_t* raw);
+uint8_t bin_to_bcd(uint8_t value);
 
 /** @brief convert a bcd formatted udate_t or utime_t to binary format via a pointer to the raw field
  *
  *  @param pointer to the raw field of a udate_t or utime_t
  *  @return void
  */
-void bcd_to_bin(uint32_t* raw);
+uint8_t bcd_to_bin(uint8_t value);
 
 /** @brief returns the day of the week for the given year/month/day
  *
@@ -215,14 +185,6 @@ uint8_t dayofweek(uint8_t y, uint8_t m, uint8_t d);
  *  @brief true if the year is a leap year
  */
 uint8_t is_leap_year(uint8_t y);
-
-/** @brief returns the number of days in the year/month, taking leap years into account
- *
- *  @param y year: 1 <= y <= 255 (2001 - 2255)
- *  @param m month: 1 <= m <= 12
- *  @return number of days
- */
-uint8_t days_in_month(uint8_t y, uint8_t m);
 
 /** @brief returns days needed to get from the "current" day to the desired day of the week.
  *
@@ -321,7 +283,7 @@ char get_current_offset(uzone_t* zone, udatetime_t* datetime, uoffset_t* offset)
  *  @param zone_in pointer to output unpacked zone
  *  @return void
  */
-void unpack_zone(const uzone_packed_t* zone_in, char* name, uzone_t* zone_out);
+void unpack_zone(const uzone_packed_t* zone_in, const char* name, uzone_t* zone_out);
 
 /** @brief advance pointer to list of zone names and returns the prev index into the zone definitions array
  *
@@ -337,5 +299,43 @@ uint8_t next_packed_zone(const char** list);
  *  @return void
  */
 void get_zone_by_name(char* name, uzone_t* zone_out);
+
+int16_t udatetime_cmp(udatetime_t* dt1, udatetime_t* dt2);
+
+#ifdef UTZ_MKTIME
+uint32_t umktime(udatetime_t* dt);
+#endif
+/**************************************************************************/
+/*                                globals                                 */
+/**************************************************************************/
+
+/** @brief cached rules for the zone and year from the last call of get_current_offset */
+extern urule_t cached_rules[MAX_CURRENT_RULES];
+
+/** @brief lookup table name of the days of week */
+extern const uint8_t _days_of_week_idx[];
+extern const char _days_of_week[];
+extern const uint8_t _months_of_year_idx[];
+extern const char _months_of_year[];
+
+//FIXME
+char* get_index(char* list, uint8_t i);
+
+#ifdef UTZ_GLOBAL_COUNTERS
+static uint8_t utz_i, utz_j;
+static uint16_t utz_k;
+#endif
+
+#define days_of_week(n) (&_days_of_week[_days_of_week_idx[n]])
+#define months_of_year(n) (&_months_of_year[_months_of_year_idx[n]])
+
+/**************************************************************************/
+/*                                 zones                                  */
+/**************************************************************************/
+
+extern const urule_packed_t zone_rules[];
+extern const uzone_packed_t zone_defns[];
+extern const char zone_abrevs[];
+extern const unsigned char zone_names[];
 
 #endif /* _UTZ_H */

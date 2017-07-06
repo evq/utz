@@ -11,7 +11,8 @@ from utz import TimeZoneDatabase
 
 DEFAULT_REGIONS = "africa,asia,australasia,backward,europe,northamerica,pacificnew,southamerica"
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
-
+H_NAME = 'zones.h'
+C_NAME = 'zones.c'
 
 @click.command(context_settings=CONTEXT_SETTINGS)
 @click.option('--dir', '-d', default=os.environ.get('UTZ_DATA_DIR', 'tzdata'), help='Path to tzdata dir.')
@@ -19,11 +20,10 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
               help='Region files included from tzdata dir.', multiple=True)
 @click.option('--include', '-i', default=filter(None, os.environ.get('UTZ_INCLUDES', '').split(',')),
               help='Additional tz database formated files included (not from tzdata dir).', multiple=True)
-@click.option('--out-file', '-O', default='zones.h', help='Output filename.')
 @click.option('--whitelist', '-w',
               default=os.environ.get('UTZ_WHITELIST', 'whitelist.txt'),
               help='Zone whitelist.')
-def process(dir, region, include, out_file, whitelist):
+def process(dir, region, include, whitelist):
     db = TimeZoneDatabase()
 
     for r in region:
@@ -43,12 +43,11 @@ def process(dir, region, include, out_file, whitelist):
             for zone in f:
                 included_zones.append(zone.strip())
 
-    out_dir = os.path.dirname(out_file)
-    if out_dir and not os.path.exists(out_dir):
-        os.mkdir(out_dir)
-
-    with open(out_file, 'w') as f:
-        f.write(db.pack(os.path.basename(out_file), included_zones))
+    c_buf, h_buf = db.pack(H_NAME, included_zones)
+    with open(H_NAME, 'w') as hf:
+        hf.write(h_buf)
+    with open(C_NAME, 'w') as cf:
+        cf.write(c_buf)
 
 
 if __name__ == '__main__':
