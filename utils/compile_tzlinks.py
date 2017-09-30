@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """ Create tz database links for major metropolian areas that don't exist in the IANA db
 
-Evey Quirk
+eV Quirk
 """
 
 import unicodedata

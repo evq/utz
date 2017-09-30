@@ -23,7 +23,6 @@
 
 #define OFFSET_INCREMENT 15 // Minutes
 
-#define MAX_ZONE_NAME_LEN 15
 #define MAX_CURRENT_RULES 4 + 1 // Fuck Morocco
 
 #define DAYS_IN_LEAP_YEAR 366
@@ -319,7 +318,7 @@ extern const uint8_t _months_of_year_idx[];
 extern const char _months_of_year[];
 
 //FIXME
-char* get_index(char* list, uint8_t i);
+const char* get_index(const char* list, uint8_t i);
 
 #ifdef UTZ_GLOBAL_COUNTERS
 static uint8_t utz_i, utz_j;

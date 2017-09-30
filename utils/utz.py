@@ -2,7 +2,7 @@
 
 """ Library for parsing IANA timezone files and performing transformations
 
-Evey Quirk
+eV Quirk
 """
 
 from collections import OrderedDict
@@ -349,6 +349,7 @@ class TimeZoneDatabase(object):
                 idx = idx + 1
         c_buf[c_buf.index('PLACEHOLDER')] = 'const urule_packed_t zone_rules[%d] = {' % idx
         c_buf.append('};')
+        h_buf.append('const urule_packed_t zone_rules[%d];' % idx)
 
         return group_idx
 
@@ -362,14 +363,23 @@ class TimeZoneDatabase(object):
             if fmt not in packed_formatters:
                 packed_formatters[fmt] = {'fmt': fmt}
 
-        c_buf.append('const char zone_abrevs[] = {')
-        i = 0
+        c_buf.append('PLACEHOLDER')
+        total_char = 0
+        max_char = 0
         for orig_fmt, packed_fmt in packed_formatters.items():
-            packed_formatters[orig_fmt]['start'] = i
+            packed_formatters[orig_fmt]['start'] = total_char
+            if '%' in packed_fmt['fmt']:
+                packed_fmt['fmt'] = packed_fmt['fmt'] % '%c'
             c_buf.append("'%s','\\0'," % "','".join([c for c in packed_fmt['fmt']]))
-            i += len(packed_fmt) + 1
+            total_char += len(packed_fmt['fmt']) + 1
+            if len(packed_fmt['fmt']) > max_char:
+                max_char = len(packed_fmt['fmt'])
+
         c_buf.append('};')
         c_buf.append('')
+        c_buf[c_buf.index('PLACEHOLDER')] = 'const char zone_abrevs[%d] = {' % total_char
+        h_buf.extend(['const char zone_abrevs[%d];' % total_char, ''])
+        h_buf.extend(['#define MAX_ABREV_FORMATTER_LEN %d' % max_char, ''])
 
         for zone in sorted(self.zones):
             packed_zone = zone.pack(rule_groups, rule_group_starts, packed_formatters)
@@ -385,6 +395,7 @@ class TimeZoneDatabase(object):
                 c_buf.append('// ' + src_zone._src)
             c_buf.append(packed_zone)
         c_buf.append('};')
+        h_buf.append('const uzone_packed_t zone_defns[%d];' % len(packed_zones))
 
         return zone_indexes
 
@@ -405,6 +416,7 @@ class TimeZoneDatabase(object):
 
         c_buf.append('PLACEHOLDER')
         total_char = 0
+        max_char = 0
         for i, (name, index) in enumerate(sorted(aliases.items())):
             char = []
             orig_name = name
@@ -421,7 +433,10 @@ class TimeZoneDatabase(object):
                     char.append(c)
             char.append('\\0')
             total_char += len(char) + 1
+            if len(char) > max_char:
+                max_char = len(char)
             c_buf.append(("%" + str(max_len*5) + "s, %3d, // %s") % ( "'%s'" % "','".join(char), index, name))
         c_buf[c_buf.index('PLACEHOLDER')] = 'const unsigned char zone_names[%d] = {' % total_char
         c_buf.append('};')
-        h_buf.extend(['', '#define NUM_ZONE_NAMES %d' % len(aliases), ''])
+        h_buf.extend(['', '#define NUM_ZONE_NAMES %d' % len(aliases), '#define MAX_ZONE_NAME_LEN %d' % max_char, ''])
+        h_buf.append('const unsigned char zone_names[%d];' % total_char)

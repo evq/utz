@@ -33,6 +33,8 @@ const char months_of_year[] = {
 'D','e','c','e','m','b','e','r','\0',
 };
 
+const uzone_packed_t* last_zone;
+uint8_t last_year;
 urule_t cached_rules[MAX_CURRENT_RULES];
 
 uint8_t ustrneq(const char* string1, const char* string2, uint8_t n) {
@@ -227,28 +229,26 @@ char get_current_offset(uzone_t* zone, udatetime_t* datetime, uoffset_t* offset)
   return rule->letter;
 }
 
-void unpack_zone(const uzone_packed_t* zone_in, char* name, uzone_t* zone_out) {
+void unpack_zone(const uzone_packed_t* zone_in, const char* name, uzone_t* zone_out) {
   zone_out->src = zone_in;
-  ustrncpy(zone_out->name, name, MAX_ZONE_NAME_LEN);
+  zone_out->name = name;
 
   zone_out->offset.minutes = (zone_in->offset_inc_minutes % (60 / OFFSET_INCREMENT)) * OFFSET_INCREMENT;
   zone_out->offset.hours = zone_in->offset_inc_minutes / (60 / OFFSET_INCREMENT);
   zone_out->rules = &(zone_rules[zone_in->rules_idx]);
   zone_out->rules_len = zone_in->rules_len;
 
-  zone_out->abrev_formatter[MAX_ABREV_FORMATTER_LEN+1] = '\0';
-  /*ustrncpy(zone_out->abrev_formatter, zone_in->abrev_formatter, MAX_ABREV_FORMATTER_LEN);*/
-  ustrnreplace(zone_out->abrev_formatter, zone_in->abrev_formatter, '%', "%c", MAX_ABREV_FORMATTER_LEN);
+  zone_out->abrev_formatter = &zone_abrevs[zone_in->abrev_formatter];
 }
 
-uint8_t get_next(char** list) {
+uint8_t get_next(const char** list) {
   do {
     (*list)++;
   } while (*(*list) != '\0');
   return (uint8_t) *(++(*list));
 }
 
-char* get_index(char* list, uint8_t i) {
+const char* get_index(const char* list, uint8_t i) {
   while(i-->0) {
     get_next(&list);
   }

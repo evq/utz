@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """ Sample script to strip historical zones and rules
 
-Evey Quirk
+eV Quirk
 """
 
 import click

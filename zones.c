@@ -53,47 +53,47 @@ const urule_packed_t zone_rules[50] = {
 { 13, 255, 7,  0,  1,  1, 0, 1, 10, 0}, // 	Zion	2013	max	-	Oct	lastSun	2:00	0	S
 };
 
-const char zone_abrevs[] = {
+const char zone_abrevs[209] = {
 'E','E','S','T','\0',
 'W','A','T','\0',
 'C','A','T','\0',
 'E','A','T','\0',
-'A','K','%','s','T','\0',
+'A','K','%','c','T','\0',
 'A','R','S','T','\0',
-'C','%','s','T','\0',
-'M','%','s','T','\0',
-'A','%','s','T','\0',
-'P','%','s','T','\0',
+'C','%','c','T','\0',
+'M','%','c','T','\0',
+'A','%','c','T','\0',
+'P','%','c','T','\0',
 'A','M','T','\0',
-'E','%','s','T','\0',
+'E','%','c','T','\0',
 'M','S','T','\0',
 'C','S','T','\0',
-'C','L','%','s','T','\0',
-'B','R','%','s','T','\0',
-'N','%','s','T','\0',
+'C','L','%','c','T','\0',
+'B','R','%','c','T','\0',
+'N','%','c','T','\0',
 'I','C','T','\0',
 'G','S','T','\0',
 'H','K','S','T','\0',
-'I','%','s','T','\0',
+'I','%','c','T','\0',
 'P','K','S','T','\0',
 'N','P','T','\0',
 'I','S','T','\0',
 'A','S','T','\0',
 'K','S','T','\0',
-'I','R','%','s','T','\0',
+'I','R','%','c','T','\0',
 'J','S','T','\0',
 'M','M','T','\0',
-'A','C','%','s','T','\0',
+'A','C','%','c','T','\0',
 'A','E','S','T','\0',
 'A','C','S','T','\0',
-'A','E','%','s','T','\0',
+'A','E','%','c','T','\0',
 'A','W','S','T','\0',
-'C','E','%','s','T','\0',
-'E','E','%','s','T','\0',
+'C','E','%','c','T','\0',
+'E','E','%','c','T','\0',
 '+','0','3','\0',
 'G','M','T','/','B','S','T','\0',
 'M','S','K','\0',
-'N','Z','%','s','T','\0',
+'N','Z','%','c','T','\0',
 'C','h','S','T','\0',
 'H','S','T','\0',
 'S','S','T','\0',
@@ -103,100 +103,100 @@ const uzone_packed_t zone_defns[46] = {
 // Africa/Cairo	2:00	Egypt	EE%sT
 {  8,   0,   0,   0},
 // Africa/Lagos	1:00	-	WAT
-{  4,   0,   0,   3},
+{  4,   0,   0,   5},
 // Africa/Maputo	2:00	-	CAT
-{  8,   0,   0,   6},
+{  8,   0,   0,   9},
 // Africa/Nairobi	3:00	-	EAT
-{ 12,   0,   0,   9},
+{ 12,   0,   0,  13},
 // America/Anchorage	-9:00	US	AK%sT
-{-36,  46,   2,  12},
+{-36,  46,   2,  17},
 // America/Argentina/Buenos_Aires	-3:00	Arg	AR%sT
-{-12,   0,   0,  15},
+{-12,   0,   0,  23},
 // America/Chicago	-6:00	US	C%sT
-{-24,  46,   2,  18},
+{-24,  46,   2,  28},
 // America/Denver	-7:00	US	M%sT
-{-28,  46,   2,  21},
+{-28,  46,   2,  33},
 // America/Halifax	-4:00	Canada	A%sT
-{-16,  16,   2,  24},
+{-16,  16,   2,  38},
 // America/Los_Angeles	-8:00	US	P%sT
 // America/Tijuana	-8:00	US	P%sT
-{-32,  46,   2,  27},
+{-32,  46,   2,  43},
 // America/Manaus	-4:00	-	AMT
-{-16,   0,   0,  30},
+{-16,   0,   0,  48},
 // America/Mexico_City	-6:00	Mexico	C%sT
-{-24,  42,   2,  18},
+{-24,  42,   2,  28},
 // America/New_York	-5:00	US	E%sT
-{-20,  46,   2,  33},
+{-20,  46,   2,  52},
 // America/Phoenix	-7:00	-	MST
-{-28,   0,   0,  36},
+{-28,   0,   0,  57},
 // America/Regina	-6:00	-	CST
-{-24,   0,   0,  39},
+{-24,   0,   0,  61},
 // America/Santiago	-4:00	Chile	CL%sT
-{-16,  18,   2,  42},
+{-16,  18,   2,  65},
 // America/Sao_Paulo	-3:00	Brazil	BR%sT
-{-12,   6,  10,  45},
+{-12,   6,  10,  71},
 // America/St_Johns	-3:30	Canada	N%sT
-{-10,  16,   2,  48},
+{-10,  16,   2,  77},
 // Asia/Bangkok	7:00	-	ICT
-{ 28,   0,   0,  51},
+{ 28,   0,   0,  82},
 // Asia/Dubai	4:00	-	GST
-{ 16,   0,   0,  54},
+{ 16,   0,   0,  86},
 // Asia/Hong_Kong	8:00	HK	HK%sT
-{ 32,   0,   0,  57},
+{ 32,   0,   0,  90},
 // Asia/Jerusalem	2:00	Zion	I%sT
-{  8,  48,   2,  60},
+{  8,  48,   2,  95},
 // Asia/Karachi	5:00	Pakistan	PK%sT
-{ 20,   0,   0,  63},
+{ 20,   0,   0, 100},
 // Asia/Kathmandu	5:45	-	NPT
-{ 23,   0,   0,  66},
+{ 23,   0,   0, 105},
 // Asia/Kolkata	5:30	-	IST
-{ 22,   0,   0,  69},
+{ 22,   0,   0, 109},
 // Asia/Riyadh	3:00	-	AST
-{ 12,   0,   0,  72},
+{ 12,   0,   0, 113},
 // Asia/Seoul	9:00	ROK	K%sT
-{ 36,   0,   0,  75},
+{ 36,   0,   0, 117},
 // Asia/Shanghai	8:00	PRC	C%sT
 // Asia/Taipei	8:00	Taiwan	C%sT
-{ 32,   0,   0,  39},
+{ 32,   0,   0,  61},
 // Asia/Tehran	3:30	Iran	IR%sT
-{ 14,  22,  20,  78},
+{ 14,  22,  20, 121},
 // Asia/Tokyo	9:00	Japan	J%sT
-{ 36,   0,   0,  81},
+{ 36,   0,   0, 127},
 // Asia/Yangon	6:30	-	MMT
-{ 26,   0,   0,  84},
+{ 26,   0,   0, 131},
 // Australia/Adelaide	9:30	AS	AC%sT
-{ 38,   2,   2,  87},
+{ 38,   2,   2, 135},
 // Australia/Brisbane	10:00	AQ	AE%sT
-{ 40,   0,   0,  90},
+{ 40,   0,   0, 141},
 // Australia/Darwin	9:30	Aus	AC%sT
-{ 38,   0,   0,  93},
+{ 38,   0,   0, 146},
 // Australia/Hobart	10:00	AT	AE%sT
-{ 40,   4,   2,  96},
+{ 40,   4,   2, 151},
 // Australia/Perth	8:00	AW	AW%sT
-{ 32,   0,   0,  99},
+{ 32,   0,   0, 157},
 // Australia/Sydney	10:00	AN	AE%sT
-{ 40,   0,   2,  96},
+{ 40,   0,   2, 151},
 // Europe/Belgrade	1:00	EU	CE%sT
 // Europe/Berlin	1:00	EU	CE%sT
 // Europe/Madrid	1:00	EU	CE%sT
 // Europe/Rome	1:00	EU	CE%sT
-{  4,  20,   2, 102},
+{  4,  20,   2, 162},
 // Europe/Helsinki	2:00	EU	EE%sT
-{  8,  20,   2, 105},
+{  8,  20,   2, 168},
 // Europe/Istanbul	3:00	-	+03
-{ 12,   0,   0, 108},
+{ 12,   0,   0, 174},
 // Europe/London	0:00	EU	GMT/BST
-{  0,  20,   2, 111},
+{  0,  20,   2, 178},
 // Europe/Moscow	3:00	-	MSK
-{ 12,   0,   0, 114},
+{ 12,   0,   0, 186},
 // Pacific/Auckland	12:00	NZ	NZ%sT
-{ 48,  44,   2, 117},
+{ 48,  44,   2, 190},
 // Pacific/Guam	10:00	-	ChST
-{ 40,   0,   0, 120},
+{ 40,   0,   0, 196},
 // Pacific/Honolulu	-10:00	-	HST
-{-40,   0,   0, 123},
+{-40,   0,   0, 201},
 // Pacific/Pago_Pago	-11:00	-	SST
-{-44,   0,   0, 126},
+{-44,   0,   0, 205},
 };
 
 const unsigned char zone_names[961] = {

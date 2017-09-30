@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """ Micro timezone generator
 
-Evey Quirk
+eV Quirk
 """
 
 import click

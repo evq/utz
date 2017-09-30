@@ -5,7 +5,10 @@
 .Trashes
 .AppleDouble
 .LSOverride
+.gdb_history
 
 # Project specific ignores
 *.pyc
 build
+*.o
+example

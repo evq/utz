@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """ Small script to generate default zone whitelist from android and wikipedia info
 
-Evey Quirk
+eV Quirk
 """
 
 import xml.etree.ElementTree as ElementTree
