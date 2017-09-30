@@ -51,6 +51,7 @@ Asia/Calcutta
 Asia/Changzhou
 Asia/Chengdu
 Asia/Chennai
+Asia/Chongqing
 Asia/Colombo
 Asia/Delhi
 Asia/Dubai
@@ -65,6 +66,7 @@ Asia/Jinan
 Asia/Kabul
 Asia/Karachi
 Asia/Katmandu
+Asia/Kolkata
 Asia/Krasnoyarsk
 Asia/Kuala_Lumpur
 Asia/Kuwait
@@ -111,15 +113,19 @@ Europe/Ankara
 Europe/Athens
 Europe/Barcelona
 Europe/Belgrade
+Europe/Berlin
 Europe/Brussels
 Europe/Hamburg
 Europe/Helsinki
+Europe/Istanbul
 Europe/London
+Europe/Madrid
 Europe/Milan
 Europe/Minsk
 Europe/Moscow
 Europe/Munich
 Europe/Rhine-Ruhr
+Europe/Rome
 Europe/Sarajevo
 Europe/Stuttgart
 Pacific/Auckland

@@ -199,7 +199,7 @@ const uzone_packed_t zone_defns[46] = {
 {-44,   0,   0, 126},
 };
 
-const unsigned char zone_names[909] = {
+const unsigned char zone_names[961] = {
                                             'A','d','e','l','a','i','d','e','\0',  31, // Adelaide
                                         'A','h','m','e','d','a','b','a','d','\0',  24, // Ahmedabad
                                         'A','n','c','h','o','r','a','g','e','\0',   4, // Anchorage
@@ -212,6 +212,7 @@ const unsigned char zone_names[909] = {
                                                 'B','e','i','j','i','n','g','\0',  27, // Beijing
                                             'B','e','l','g','r','a','d','e','\0',  37, // Belgrade
                     'B','e','l','o',' ','H','o','r','i','z','o','n','t','e','\0',  16, // Belo Horizonte
+                                                    'B','e','r','l','i','n','\0',  37, // Berlin
                                                     'B','o','s','t','o','n','\0',  12, // Boston
                                 'B','r','a','z','z','a','v','i','l','l','e','\0',   1, // Brazzaville
                                             'B','r','i','s','b','a','n','e','\0',  32, // Brisbane
@@ -222,6 +223,7 @@ const unsigned char zone_names[909] = {
                                                 'C','h','e','n','g','d','u','\0',  27, // Chengdu
                                                 'C','h','e','n','n','a','i','\0',  24, // Chennai
                                                 'C','h','i','c','a','g','o','\0',   6, // Chicago
+                                        'C','h','o','n','g','q','i','n','g','\0',  27, // Chongqing
             'D','a','l','l','a','s','F','o','r','t',' ','W','o','r','t','h','\0',   6, // DallasFort Worth
                                                     'D','a','r','w','i','n','\0',  33, // Darwin
                                                         'D','e','l','h','i','\0',  24, // Delhi
@@ -241,14 +243,17 @@ const unsigned char zone_names[909] = {
                                                 'H','o','u','s','t','o','n','\0',   6, // Houston
                                         'H','y','d','e','r','a','b','a','d','\0',  24, // Hyderabad
                         'I','n','l','a','n','d',' ','E','m','p','i','r','e','\0',   9, // Inland Empire
+                                            'I','s','t','a','n','b','u','l','\0',  39, // Istanbul
                                         'J','e','r','u','s','a','l','e','m','\0',  21, // Jerusalem
                                                         'J','i','n','a','n','\0',  27, // Jinan
                                                 'K','a','r','a','c','h','i','\0',  22, // Karachi
                                             'K','a','t','m','a','n','d','u','\0',  23, // Katmandu
+                                                'K','o','l','k','a','t','a','\0',  24, // Kolkata
                                                     'K','u','w','a','i','t','\0',  25, // Kuwait
                                                     'L','a','h','o','r','e','\0',  22, // Lahore
                                                     'L','o','n','d','o','n','\0',  40, // London
                                 'L','o','s',' ','A','n','g','e','l','e','s','\0',   9, // Los Angeles
+                                                    'M','a','d','r','i','d','\0',  37, // Madrid
                                                     'M','a','n','a','u','s','\0',  10, // Manaus
                                 'M','e','x','i','c','o',' ','C','i','t','y','\0',  11, // Mexico City
                                                         'M','i','a','m','i','\0',  12, // Miami
@@ -272,6 +277,7 @@ const unsigned char zone_names[909] = {
                                                     'R','e','g','i','n','a','\0',  14, // Regina
                                     'R','h','i','n','e','-','R','u','h','r','\0',  37, // Rhine-Ruhr
                     'R','i','o',' ','d','e',' ','J','a','n','e','i','r','o','\0',  16, // Rio de Janeiro
+                                                            'R','o','m','e','\0',  37, // Rome
                         'S','a','n',' ','F','r','a','n','c','i','s','c','o','\0',   9, // San Francisco
                                             'S','a','n','t','i','a','g','o','\0',  15, // Santiago
                                         'S','a','o',' ','P','a','u','l','o','\0',  16, // Sao Paulo

@@ -19,4 +19,4 @@ majormetros:
 	./utils/compile_tzlinks.py
 
 clean:
-	rm zones.h
+	rm zones.h zones.c whitelist.txt
