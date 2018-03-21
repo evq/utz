@@ -12,3 +12,8 @@
 build
 *.o
 example
+*.rel
+*.asm
+*.sym
+*.lst
+*.rst

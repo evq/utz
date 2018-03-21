@@ -5,78 +5,45 @@
  */
 
 #include <stdint.h>
+#include <string.h>
 
 #include "utz.h"
 #include "zones.h"
 
 const char days_of_week[] = {
-'M','o','n','d','a','y','\0',
-'T','u','e','s','d','a','y','\0',
-'W','e','d','n','e','s','d','a','y','\0',
-'T','h','u','r','s','d','a','y','\0',
-'F','r','i','d','a','y','\0',
-'S','a','t','u','r','d','a','y','\0',
-'S','u','n','d','a','y','\0',
+'M', 'o', 'n', 'd', 'a', 'y','\0',
+'T', 'u', 'e', 's', 'd', 'a', 'y','\0',
+'W', 'e', 'd', 'n', 'e', 's', 'd', 'a', 'y','\0',
+'T', 'h', 'u', 'r', 's', 'd', 'a', 'y','\0',
+'F', 'r', 'i', 'd', 'a', 'y','\0',
+'S', 'a', 't', 'u', 'r', 'd', 'a', 'y','\0',
+'S', 'u', 'n', 'd', 'a', 'y','\0',
 };
+
+const uint8_t days_of_week_idx[] = {0, 7, 15, 25, 34, 41, 50};
 
 const char months_of_year[] = {
-'J','a','n','u','a','r','y','\0',
-'F','e','b','r','u','a','r','y','\0',
-'M','a','r','c','h','\0',
-'A','p','r','i','l','\0',
-'M','a','y','\0',
-'J','u','n','e','\0',
-'J','u','l','y','\0',
-'A','u','g','u','s','t','\0',
-'S','e','p','t','e','m','b','e','r','\0',
-'N','o','v','e','m','b','e','r','\0',
-'D','e','c','e','m','b','e','r','\0',
+'J', 'a', 'n', 'u', 'a', 'r', 'y','\0',
+'F', 'e', 'b', 'r', 'u', 'a', 'r', 'y','\0',
+'M', 'a', 'r', 'c', 'h','\0',
+'A', 'p', 'r', 'i', 'l','\0',
+'M', 'a', 'y','\0',
+'J', 'u', 'n', 'e','\0',
+'J', 'u', 'l', 'y','\0',
+'A', 'u', 'g', 'u', 's', 't','\0',
+'S', 'e', 'p', 't', 'e', 'm', 'b', 'e', 'r','\0',
+'O', 'c', 't', 'o', 'b', 'e', 'r','\0',
+'N', 'o', 'v', 'e', 'm', 'b', 'e', 'r','\0',
+'D', 'e', 'c', 'e', 'm', 'b', 'e', 'r','\0',
 };
 
+const uint8_t months_of_year_idx[] = {0, 8, 17, 23, 29, 33, 38, 43, 50, 60, 68, 77};
+
+urule_t cached_rules[MAX_CURRENT_RULES];
 const uzone_packed_t* last_zone;
 uint8_t last_year;
-urule_t cached_rules[MAX_CURRENT_RULES];
 
-uint8_t ustrneq(const char* string1, const char* string2, uint8_t n) {
-#ifndef UTZ_GLOBAL_COUNTERS
-  uint8_t utz_i;
-#endif
-  for (utz_i = 0; utz_i < n && string1[utz_i] != '\0' && string2[utz_i] != '\0'; utz_i++) {
-    if (string1[utz_i] != string2[utz_i]) {
-      return UFALSE;
-    }
-  }
-  return UTRUE;
-}
-
-#define ustrncpy(dest, src, n) ustrnreplace(dest, src, 0, 0, n)
-char* ustrnreplace(char* dest, const char* src, char c, char* replacement, uint8_t n) {
-#ifndef UTZ_GLOBAL_COUNTERS
-  uint8_t utz_i, utz_j;
-#endif
-  for (utz_i = utz_j = 0; utz_i < n; (utz_i++)) {
-    if (replacement != 0 && src[utz_i] == c) {
-      while(*replacement != '\0') {
-        dest[utz_j++]= *(replacement++);
-      }
-    } else {
-      dest[utz_j++] = src[utz_i];
-    }
-    if (src[utz_i] == '\0') {
-      break;
-    }
-  }
-  return dest;
-}
-
-
-uint8_t bin_to_bcd(uint8_t value) {
-  return ((value / 10) << 4) | (value % 10);
-}
-
-uint8_t bcd_to_bin(uint8_t value) {
-  return (value & 0x0F) + ((value >> 4) * 10);
-}
+#define ustrneq(s1, s2, n) (strncmp(s1, s2, n) == 0)
 
 uint8_t dayofweek(uint8_t y, uint8_t m, uint8_t d) {
     static const uint8_t dayofweek_table[] = {0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4};
@@ -118,9 +85,6 @@ int16_t udatetime_cmp(udatetime_t* dt1, udatetime_t* dt2) {
   ret = dt1->time.minute - dt2->time.minute; if(ret != 0) { return ret; }
   ret = dt1->time.second - dt2->time.second; if(ret != 0) { return ret; }
   return 0;
-}
-
-int32_t udatetime_unix(udatetime_t* dt) {
 }
 
 void unpack_rule(const urule_packed_t* rule_in, uint8_t cur_year, urule_t* rule_out) {
@@ -229,7 +193,7 @@ char get_current_offset(uzone_t* zone, udatetime_t* datetime, uoffset_t* offset)
   return rule->letter;
 }
 
-void unpack_zone(const uzone_packed_t* zone_in, const char* name, uzone_t* zone_out) {
+void unpack_zone(const uzone_packed_t* zone_in, char* name, uzone_t* zone_out) {
   zone_out->src = zone_in;
   zone_out->name = name;
 
