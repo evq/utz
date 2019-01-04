@@ -284,12 +284,12 @@ char get_current_offset(uzone_t* zone, udatetime_t* datetime, uoffset_t* offset)
  */
 void unpack_zone(const uzone_packed_t* zone_in, const char* name, uzone_t* zone_out);
 
-/** @brief advance pointer to list of zone names and returns the prev index into the zone definitions array
+/** @brief advance pointer to list and returns index to the the prev item
  *
- *  @param list pointer to pointer into zone names list
- *  @return index into the zone definitions array for the zone name before advancement
+ *  @param list pointer
+ *  @return index into the array for the item before advancement
  */
-uint8_t next_packed_zone(const char** list);
+uint8_t get_next(const char** list);
 
 /** @brief lookup a zone via zone_names
  *
