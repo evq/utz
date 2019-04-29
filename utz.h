@@ -171,6 +171,10 @@ uint8_t dayofweek(uint8_t y, uint8_t m, uint8_t d);
  */
 uint8_t is_leap_year(uint8_t y);
 
+/** FIXME
+ */
+uint8_t days_in_month(uint8_t y, uint8_t m);
+
 /** @brief returns days needed to get from the "current" day to the desired day of the week.
  *
  *  @param dayofweek_of_cur the "current" day of the week: 1 <= dayofweek_of_cur <= 7 (Monday = 1, Sunday = 7)
@@ -250,7 +254,7 @@ void unpack_rules(const urule_packed_t* rules_in, uint8_t num_rules, uint8_t cur
  *  @param datetime the datetime to check rules for
  *  @return a pointer the the rule that applies
  */
-urule_t* get_active_rule(urule_t* rules, udatetime_t* datetime);
+const urule_t* get_active_rule(const urule_t* rules, const udatetime_t* datetime);
 
 /** @brief get the offset for zone at datetime, taking into account daylight savings time rules
  *
@@ -259,7 +263,7 @@ urule_t* get_active_rule(urule_t* rules, udatetime_t* datetime);
  *  @param offset offset for zone at datetime
  *  @return abbreviation letter
  */
-char get_current_offset(uzone_t* zone, udatetime_t* datetime, uoffset_t* offset);
+char get_current_offset(const uzone_t* zone, const udatetime_t* datetime, uoffset_t* offset);
 
 /** @brief unpack timezone
  *
@@ -268,7 +272,7 @@ char get_current_offset(uzone_t* zone, udatetime_t* datetime, uoffset_t* offset)
  *  @param zone_in pointer to output unpacked zone
  *  @return void
  */
-void unpack_zone(const uzone_packed_t* zone_in, char* name, uzone_t* zone_out);
+void unpack_zone(const uzone_packed_t* zone_in, const char* name, uzone_t* zone_out);
 
 /** @brief advance pointer to list and returns index to the the prev item
  *
@@ -285,7 +289,7 @@ uint8_t get_next(const char** list);
  */
 void get_zone_by_name(char* name, uzone_t* zone_out);
 
-int16_t udatetime_cmp(udatetime_t* dt1, udatetime_t* dt2);
+int16_t udatetime_cmp(const udatetime_t* dt1, const udatetime_t* dt2);
 
 #ifdef UTZ_MKTIME
 uint32_t umktime(udatetime_t* dt);
@@ -298,10 +302,10 @@ uint32_t umktime(udatetime_t* dt);
 extern urule_t cached_rules[MAX_CURRENT_RULES];
 
 /** @brief lookup table name of the days of week */
-extern const uint8_t days_of_week_idx[];
-extern const char days_of_week[];
-extern const uint8_t months_of_year_idx[];
-extern const char months_of_year[];
+extern const uint8_t* days_of_week_idx;
+extern const char* days_of_week;
+extern const uint8_t* months_of_year_idx;
+extern const char* months_of_year;
 
 //FIXME
 const char* get_index(const char* list, uint8_t i);
@@ -313,14 +317,5 @@ static uint16_t utz_k;
 
 #define days_of_week(n) (&days_of_week[days_of_week_idx[n-1]])
 #define months_of_year(n) (&months_of_year[months_of_year_idx[n-1]])
-
-/**************************************************************************/
-/*                                 zones                                  */
-/**************************************************************************/
-
-extern const urule_packed_t zone_rules[];
-extern const uzone_packed_t zone_defns[];
-extern const char zone_abrevs[];
-extern const unsigned char zone_names[];
 
 #endif /* _UTZ_H */

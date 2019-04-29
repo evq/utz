@@ -1,6 +1,6 @@
 #include "utz.h"
 
-const urule_packed_t zone_rules[50] = {
+const urule_packed_t _zone_rules[50] = {
 {  8, 255, 7,  1,  1,  2, 0, 1,  4, 0}, // 	AN	2008	max	-	Apr	Sun>=1	2:00s	0	S
 {  8, 255, 7,  1,  1,  2, 0, 2, 10, 1}, // 	AN	2008	max	-	Oct	Sun>=1	2:00s	1:00	D
 {  8, 255, 7,  1,  1,  2, 0, 1,  4, 0}, // 	AS	2008	max	-	Apr	Sun>=1	2:00s	0	S
@@ -53,7 +53,7 @@ const urule_packed_t zone_rules[50] = {
 { 13, 255, 7,  0,  1,  1, 0, 1, 10, 0}, // 	Zion	2013	max	-	Oct	lastSun	2:00	0	S
 };
 
-const char zone_abrevs[209] = {
+const char _zone_abrevs[209] = {
 'E','E','S','T','\0',
 'W','A','T','\0',
 'C','A','T','\0',
@@ -99,7 +99,7 @@ const char zone_abrevs[209] = {
 'S','S','T','\0',
 };
 
-const uzone_packed_t zone_defns[46] = {
+const uzone_packed_t _zone_defns[46] = {
 // Africa/Cairo	2:00	Egypt	EE%sT
 {  8,   0,   0,   0},
 // Africa/Lagos	1:00	-	WAT
@@ -199,7 +199,7 @@ const uzone_packed_t zone_defns[46] = {
 {-44,   0,   0, 205},
 };
 
-const unsigned char zone_names[961] = {
+const char _zone_names[961] = {
                                             'A','d','e','l','a','i','d','e','\0',  31, // Adelaide
                                         'A','h','m','e','d','a','b','a','d','\0',  24, // Ahmedabad
                                         'A','n','c','h','o','r','a','g','e','\0',   4, // Anchorage
@@ -301,3 +301,7 @@ const unsigned char zone_names[961] = {
                                                        'X','i','\'','a','n','\0',  27, // Xi'an
                                         'Z','h','e','n','g','z','h','o','u','\0',  27, // Zhengzhou
 };
+const urule_packed_t* zone_rules = (urule_packed_t*)  _zone_rules;
+const char* zone_abrevs = (char*) _zone_abrevs;
+const uzone_packed_t* zone_defns = (uzone_packed_t*) _zone_defns;
+const char* zone_names = (char*) _zone_names;
