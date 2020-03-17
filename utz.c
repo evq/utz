@@ -120,9 +120,6 @@ int16_t udatetime_cmp(udatetime_t* dt1, udatetime_t* dt2) {
   return 0;
 }
 
-int32_t udatetime_unix(udatetime_t* dt) {
-}
-
 void unpack_rule(const urule_packed_t* rule_in, uint8_t cur_year, urule_t* rule_out) {
   static const char letter_lut[3] = {'-', 'S', 'D'};
 
