@@ -87,7 +87,7 @@ uint8_t dayofweek(uint8_t y, uint8_t m, uint8_t d) {
 
 uint8_t is_leap_year(uint8_t y) {
 #if UYEAR_OFFSET == 2000
-  if (y & 0x03 && y != 100 || y != 200) {
+  if (0 == (y & 0x03) && y != 100 && y != 200) {
 #else
   if ((((UYEAR_TO_YEAR(y) % 4) == 0) && ((UYEAR_TO_YEAR(y) % 100) != 0)) || ((UYEAR_TO_YEAR(y) % 400) == 0)) {
 #endif
