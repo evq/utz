@@ -8,7 +8,6 @@ eV Quirk
 from collections import OrderedDict
 from datetime import date
 from functools import total_ordering
-from sets import Set
 
 CURRENT_YEAR = date.today().year
 MAX_FMT_LEN = 5
@@ -16,7 +15,8 @@ MAX_FMT_LEN = 5
 TZ_TYPES = ['Rule', 'Zone', 'Link']
 
 DAY_OF_WEEK = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 
 class Entry(object):
@@ -29,7 +29,8 @@ class Entry(object):
         self.values = [None] * self.num_columns
         if args or kwargs:
             self._load(*args, **kwargs)
-            self._src = self.dumps(clazz=False)  # default "source" in cases we dont use self.load
+            # default "source" in cases we dont use self.load
+            self._src = self.dumps(clazz=False)
 
     def __getattr__(self, name):
         return self.values[self.column_names.index(name)]
@@ -158,17 +159,18 @@ class Rule(Entry):
 
         # see utz.h for struct definitions
         return "{%3d, %3d, %d, %2d, %2d, %2d, %d, %d, %2d, %d}, // %s" % (
-                _from,                     # years since 2000
-                to,                        # years since 2000
-                on_u,                      # day of week (mon=1) unless 0, then assume format is "dayOfMonth"
-                on_d,                      # day of month unless 0, then assume format is "last dayOfWeek"
-                at_z,                      # time of day, timezone (UTC / LOCAL)
-                at_H,                      # time of day, hours
-                at_M / 15,                 # time of day, minutes, in 15 minute increments
-                l,                         # (-, S, D)
-                MONTHS.index(self._in)+1,  # month
-                off_H,                     # offset in hours
-                self._src,
+            _from,                     # years since 2000
+            to,                        # years since 2000
+            # day of week (mon=1) unless 0, then assume format is "dayOfMonth"
+            on_u,
+            on_d,                      # day of month unless 0, then assume format is "last dayOfWeek"
+            at_z,                      # time of day, timezone (UTC / LOCAL)
+            at_H,                      # time of day, hours
+            at_M / 15,                 # time of day, minutes, in 15 minute increments
+            l,                         # (-, S, D)
+            MONTHS.index(self._in)+1,  # month
+            off_H,                     # offset in hours
+            self._src,
         )
 
 
@@ -186,26 +188,25 @@ class Zone(Entry):
 
     def pack(self, rule_groups, rule_group_starts, formatters):
         if self.until is not None:
-            print self  # FIXME warnings
+            print(self)  # FIXME warnings
 
         _, h, m = parse_h_m(self.gmtoff)
 
         #fmt = self.format
-        #if '+' in fmt or '-' in fmt:
-            #fmt = '-'  # we will assume there is no abrev and generate from offset
-        #if '/' in fmt and 'GMT' in fmt:
-            #fmt = fmt[fmt.index('/'):]  # assume starts with / means GMT/<foo>
+        # if '+' in fmt or '-' in fmt:
+        #    fmt = '-'  # we will assume there is no abrev and generate from offset
+        # if '/' in fmt and 'GMT' in fmt:
+        #    fmt = fmt[fmt.index('/'):]  # assume starts with / means GMT/<foo>
         fmt = 0
         if self.format in formatters:
             fmt = formatters[self.format]['start']
 
-
         #fmt_a = []
-        #for i in range(MAX_FMT_LEN):
-            #if len(fmt) > i:
-                #fmt_a.append("%4s" % ("'" + fmt[i] + "'"))
-            #else:
-                #fmt_a.append("%4s" % "'\\0'")
+        # for i in range(MAX_FMT_LEN):
+            # if len(fmt) > i:
+            #    fmt_a.append("%4s" % ("'" + fmt[i] + "'"))
+            # else:
+            #    fmt_a.append("%4s" % "'\\0'")
 
         rule_start = 0
         num_rule = 0
@@ -262,7 +263,7 @@ class TimeZoneDatabase(object):
 
     def strip_historical(self):
         """ Strip out historical rules and zones """
-        rule_group_names = Set()
+        rule_group_names = set()
 
         filtered_rules = []
         for rule in self.rules:
@@ -330,7 +331,8 @@ class TimeZoneDatabase(object):
         rule_groups = self.rule_groups()
         rule_group_starts = self._pack_rules(rule_groups, c_buf, h_buf)
         c_buf.append('')
-        zone_indexes = self._pack_zones(rule_groups, rule_group_starts, c_buf, h_buf)
+        zone_indexes = self._pack_zones(
+            rule_groups, rule_group_starts, c_buf, h_buf)
         c_buf.append('')
         self._pack_links(zone_indexes, c_buf, h_buf, included_aliases)
         c_buf.append('')
@@ -347,7 +349,8 @@ class TimeZoneDatabase(object):
             for rule in sorted(group, key=lambda x: MONTHS.index(x._in)):
                 c_buf.append(rule.pack())
                 idx = idx + 1
-        c_buf[c_buf.index('PLACEHOLDER')] = 'const urule_packed_t zone_rules[%d] = {' % idx
+        c_buf[c_buf.index('PLACEHOLDER')
+              ] = 'const urule_packed_t zone_rules[%d] = {' % idx
         c_buf.append('};')
         h_buf.append('const urule_packed_t zone_rules[%d];' % idx)
 
@@ -370,32 +373,37 @@ class TimeZoneDatabase(object):
             packed_formatters[orig_fmt]['start'] = total_char
             if '%' in packed_fmt['fmt']:
                 packed_fmt['fmt'] = packed_fmt['fmt'] % '%c'
-            c_buf.append("'%s','\\0'," % "','".join([c for c in packed_fmt['fmt']]))
+            c_buf.append("'%s','\\0'," % "','".join(
+                [c for c in packed_fmt['fmt']]))
             total_char += len(packed_fmt['fmt']) + 1
             if len(packed_fmt['fmt']) > max_char:
                 max_char = len(packed_fmt['fmt'])
 
         c_buf.append('};')
         c_buf.append('')
-        c_buf[c_buf.index('PLACEHOLDER')] = 'const char zone_abrevs[%d] = {' % total_char
+        c_buf[c_buf.index('PLACEHOLDER')
+              ] = 'const char zone_abrevs[%d] = {' % total_char
         h_buf.extend(['const char zone_abrevs[%d];' % total_char, ''])
         h_buf.extend(['#define MAX_ABREV_FORMATTER_LEN %d' % max_char, ''])
 
         for zone in sorted(self.zones):
-            packed_zone = zone.pack(rule_groups, rule_group_starts, packed_formatters)
+            packed_zone = zone.pack(
+                rule_groups, rule_group_starts, packed_formatters)
             if packed_zone not in packed_zones:
                 packed_zones[packed_zone] = [zone]
             else:
                 packed_zones[packed_zone].append(zone)
-            zone_indexes[zone.name] = packed_zones.keys().index(packed_zone)
+            zone_indexes[zone.name] = list(packed_zones).index(packed_zone)
 
-        c_buf.append('const uzone_packed_t zone_defns[%d] = {' % len(packed_zones))
+        c_buf.append(
+            'const uzone_packed_t zone_defns[%d] = {' % len(packed_zones))
         for packed_zone, srcs in packed_zones.items():
             for src_zone in srcs:
                 c_buf.append('// ' + src_zone._src)
             c_buf.append(packed_zone)
         c_buf.append('};')
-        h_buf.append('const uzone_packed_t zone_defns[%d];' % len(packed_zones))
+        h_buf.append(
+            'const uzone_packed_t zone_defns[%d];' % len(packed_zones))
 
         return zone_indexes
 
@@ -424,7 +432,8 @@ class TimeZoneDatabase(object):
             name = name.replace("-", '')
             name = name.replace(".", '')
             name = name.replace(",", '')
-            h_buf.append(("#define UTZ_" + name.upper() + ' '*(max_len+4-len(name)) + '&zone_defns[%3d]') % index)
+            h_buf.append(("#define UTZ_" + name.upper() + ' ' *
+                          (max_len+4-len(name)) + '&zone_defns[%3d]') % index)
             name = orig_name.replace('_', ' ')
             for c in name:
                 if c == "'":
@@ -435,8 +444,11 @@ class TimeZoneDatabase(object):
             total_char += len(char) + 1
             if len(char) > max_char:
                 max_char = len(char)
-            c_buf.append(("%" + str(max_len*5) + "s, %3d, // %s") % ( "'%s'" % "','".join(char), index, name))
-        c_buf[c_buf.index('PLACEHOLDER')] = 'const unsigned char zone_names[%d] = {' % total_char
+            c_buf.append(("%" + str(max_len*5) + "s, %3d, // %s") %
+                         ("'%s'" % "','".join(char), index, name))
+        c_buf[c_buf.index(
+            'PLACEHOLDER')] = 'const unsigned char zone_names[%d] = {' % total_char
         c_buf.append('};')
-        h_buf.extend(['', '#define NUM_ZONE_NAMES %d' % len(aliases), '#define MAX_ZONE_NAME_LEN %d' % max_char, ''])
+        h_buf.extend(['', '#define NUM_ZONE_NAMES %d' % len(
+            aliases), '#define MAX_ZONE_NAME_LEN %d' % max_char, ''])
         h_buf.append('const unsigned char zone_names[%d];' % total_char)
