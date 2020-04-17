@@ -8,15 +8,16 @@ eV Quirk
 from collections import OrderedDict
 from datetime import date
 from functools import total_ordering
+from typing import List, Tuple, Dict
 
 CURRENT_YEAR = date.today().year
 MAX_FMT_LEN = 5
 
-TZ_TYPES = ['Rule', 'Zone', 'Link']
+TZ_TYPES: List[str] = ['Rule', 'Zone', 'Link']
 
-DAY_OF_WEEK = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+DAY_OF_WEEK: List[str] = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+MONTHS: List[str] = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 
 class Entry(object):
@@ -61,7 +62,7 @@ class Entry(object):
         return tmp
 
     @classmethod
-    def loads(cls, string):
+    def loads(cls, string: str):
         new = cls()
         split_line = string.split(None, new.num_columns-1)
         new._load(*split_line)
@@ -69,7 +70,7 @@ class Entry(object):
         return new
 
 
-def parse_h_m(time):
+def parse_h_m(time: str) -> Tuple[str, int, int]:
     z, h, m = ('local', 0, 0)
     if time.endswith('u'):
         z = 'utc'
@@ -92,7 +93,7 @@ class Rule(Entry):
     column_names = ('name', '_from', 'to', 'type', '_in',
                     'on', 'at', 'save', 'letter',)
 
-    def pack(self):
+    def pack(self) -> str:
         """ Pack rule into micro timezone rule format, only works after stripping historical zones / rules """
         _from = int(self._from) - 2000
         if _from < 0:
@@ -105,19 +106,21 @@ class Rule(Entry):
         else:
             to = int(self.to) - 2000
 
-        on_u = 0
-        on_d = 0
+        in_month = MONTHS.index(self._in)+1
+
+        on_dow = 0
+        on_dom = 0
 
         if '>=' in self.on:
-            on_u, on_d = self.on.split('>=')
-            on_d = int(on_d)
+            on_dow, on_dom = self.on.split('>=')
+            on_dom = int(on_dom)
         elif 'last' in self.on:
-            on_u = self.on[4:]
+            on_dow = self.on[4:]
         else:
-            on_d = int(self.on)
+            on_dom = int(self.on)
 
-        if not isinstance(on_u, int):
-            on_u = DAY_OF_WEEK.index(on_u) + 1
+        if not isinstance(on_dow, int):
+            on_dow = DAY_OF_WEEK.index(on_dow) + 1
 
         _, off_H, _ = parse_h_m(self.save)
 
@@ -128,29 +131,10 @@ class Rule(Entry):
             at_z = 1
         elif at_z == 'local':  # we convert all rules specified in local time to standard time
             if off_H == 0:
-                if at_H == 0:  # fixup if we would go negative
-                    if on_u != 0 and on_d != 0:
-                        on_u = 1 + ((7 + (on_u - 1) - 1) % 7)
-                        on_d = on_d - 1
-                        assert(on_d > 0)
-                        at_H = 23
-                    elif on_u == 0:
-                        on_d = on_d - 1
-                        assert(on_d > 0)
-                        at_H = 23
-                    elif on_d == 0:
-                        # the three rule groups that hit this condition are Mongol, Lebanon, and Syria
-
-                        # they rely on lastDOW (e.g. lastSun, unfortunately there
-                        # isn't an easy way to specify lastSun-1 ) as far as I can tell
-
-                        # selfishly I'm going to take the hit of being 1 hour off on these 3 zones :/
-                        pass
-                else:
-                    at_H = at_H - 1
-
+                print(f"  src: {self._src}")
+            on_dow, on_dom, at_H, off_H = w_to_s(
+                on_dow, on_dom, at_H, off_H)
             at_z = 1
-
         l = 0
         if self.letter == 'S':
             l = 1
@@ -158,20 +142,37 @@ class Rule(Entry):
             l = 2
 
         # see utz.h for struct definitions
-        return "{%3d, %3d, %d, %2d, %2d, %2d, %d, %d, %2d, %d}, // %s" % (
-            _from,                     # years since 2000
-            to,                        # years since 2000
-            # day of week (mon=1) unless 0, then assume format is "dayOfMonth"
-            on_u,
-            on_d,                      # day of month unless 0, then assume format is "last dayOfWeek"
-            at_z,                      # time of day, timezone (UTC / LOCAL)
-            at_H,                      # time of day, hours
-            at_M / 15,                 # time of day, minutes, in 15 minute increments
-            l,                         # (-, S, D)
-            MONTHS.index(self._in)+1,  # month
-            off_H,                     # offset in hours
-            self._src,
-        )
+        return f"{{{_from:3}, {to:3}, {on_dow}, {on_dom:2}, {at_z:2}, {at_H:2}, {int(at_M/15)}, {l}, {in_month:2}, {off_H}}}, // {self._src}"
+
+
+def w_to_s(on_dow, on_dom, at_H, off_H) -> Tuple[int, int, int, int]:
+    """Converts a rule with a local (wall) time to standard time
+    """
+    if off_H == 0:
+        # Rule is for going back to standard time, which means it's currently on savings time.
+        # Change back to standard, which means moving an hour back
+        if at_H == 0:
+            # if at_H is 0, going back to std time means going back to the previous day
+            if on_dow != 0 and on_dom != 0:  # rule specifies day of week and day of month, ex Sun>=1
+                on_dow = on_dow - 1 if on_dow - 1 > 0 else 7
+                on_dom = on_dom - 1
+                assert(on_dom > 0)
+                at_H = 23
+            elif on_dow == 0:  # format is day of month, ex 21
+                on_dom = on_dom - 1
+                assert(on_dom > 0)
+                at_H = 23
+            elif on_dom == 0:  # format is day of week, ex: lastSun
+                # the three rule groups that hit this condition are Mongol, Lebanon, and Syria
+
+                # they rely on lastDOW (e.g. lastSun, unfortunately there
+                # isn't an easy way to specify lastSun-1 ) as far as I can tell
+
+                # selfishly I'm going to take the hit of being 1 hour off on these 3 zones :/
+                pass
+        else:  # same day, just go back an hour to std time
+            at_H = at_H - 1
+    return (on_dow, on_dom, at_H, off_H)
 
 
 @total_ordering
@@ -180,7 +181,7 @@ class Zone(Entry):
     column_names = ('name', 'stdoff', 'rules', 'format', 'until',)
     opt_columns = ('until',)
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return self.name == other.name
 
     def __lt__(self, other):
@@ -214,7 +215,7 @@ class Zone(Entry):
             rule_start = rule_group_starts[self.rules]
             num_rule = len(rule_groups[self.rules])
 
-        return "{%3d, %3d, %3d, %3d}," % ((4 * h) + (m / 15), rule_start, num_rule, fmt)
+        return f"{{{(4 * h) + (m / 15):3.0f}, {rule_start:3}, {num_rule:3}, {fmt:3}}},"
 
 
 class Link(Entry):
@@ -224,9 +225,9 @@ class Link(Entry):
 
 class TimeZoneDatabase(object):
     def __init__(self):
-        self.rules = []
-        self.zones = []
-        self.links = []
+        self.rules: List[Rule] = []
+        self.zones: List[Zone] = []
+        self.links: List[Link] = []
 
     def load(self, f):
         for line in f:
@@ -253,7 +254,7 @@ class TimeZoneDatabase(object):
                 tmp.extend(line.split(None, len(Zone.column_names)-1))
                 self.zones.append(Zone(*tmp))
 
-    def dump(self, f):
+    def dump(self, f) -> None:
         for rule in self.rules:
             f.write(rule.dumps() + '\n')
         for zone in self.zones:
@@ -261,7 +262,7 @@ class TimeZoneDatabase(object):
         for link in self.links:
             f.write(link.dumps() + '\n')
 
-    def strip_historical(self):
+    def strip_historical(self) -> None:
         """ Strip out historical rules and zones """
         rule_group_names = set()
 
@@ -286,7 +287,7 @@ class TimeZoneDatabase(object):
                 filtered_zones.append(zone)
         self.zones = filtered_zones
 
-    def rule_groups(self):
+    def rule_groups(self) -> Dict[str, List[Rule]]:
         """ Groups rules by name, also prune orphaned rules"""
 
         rule_groups = {}
@@ -303,7 +304,7 @@ class TimeZoneDatabase(object):
                 del rule_groups[group]
         return rule_groups
 
-    def pack(self, h_filename, included_aliases=None):
+    def pack(self, h_filename, included_aliases=None) -> Tuple[str, str]:
         whitelisted_zones = []
         for alias in included_aliases:
             for link in self.links:
@@ -326,7 +327,7 @@ class TimeZoneDatabase(object):
         self.rules = rules
 
         h_filename = h_filename.upper().replace('.', '_')
-        h_buf = ['#ifndef _%s' % h_filename, '#define _%s' % h_filename, '']
+        h_buf = [f'#ifndef _{h_filename}', f'#define _{h_filename}', '']
         c_buf = ['#include "utz.h"', '']
         rule_groups = self.rule_groups()
         rule_group_starts = self._pack_rules(rule_groups, c_buf, h_buf)
@@ -336,10 +337,10 @@ class TimeZoneDatabase(object):
         c_buf.append('')
         self._pack_links(zone_indexes, c_buf, h_buf, included_aliases)
         c_buf.append('')
-        h_buf.append('#endif /* _%s */' % h_filename)
+        h_buf.append(f'#endif /* _{h_filename} */')
         return ('\n'.join(c_buf), '\n'.join(h_buf))
 
-    def _pack_rules(self, rule_groups, c_buf, h_buf):
+    def _pack_rules(self, rule_groups: Dict[str, List[Rule]], c_buf: List[str], h_buf: List[str]):
         c_buf.append('PLACEHOLDER')
         group_idx = {}
         idx = 0
@@ -350,9 +351,9 @@ class TimeZoneDatabase(object):
                 c_buf.append(rule.pack())
                 idx = idx + 1
         c_buf[c_buf.index('PLACEHOLDER')
-              ] = 'const urule_packed_t zone_rules[%d] = {' % idx
+              ] = f'const urule_packed_t zone_rules[{idx}] = {{'
         c_buf.append('};')
-        h_buf.append('const urule_packed_t zone_rules[%d];' % idx)
+        h_buf.append(f'const urule_packed_t zone_rules[{idx}];')
 
         return group_idx
 
@@ -382,9 +383,10 @@ class TimeZoneDatabase(object):
         c_buf.append('};')
         c_buf.append('')
         c_buf[c_buf.index('PLACEHOLDER')
-              ] = 'const char zone_abrevs[%d] = {' % total_char
-        h_buf.extend(['const char zone_abrevs[%d];' % total_char, ''])
-        h_buf.extend(['#define MAX_ABREV_FORMATTER_LEN %d' % max_char, ''])
+              ] = f'const char zone_abrevs[{total_char}] = {{'
+        h_buf.extend(
+            [f'const char zone_abrevs[{total_char}];', ''])
+        h_buf.extend([f'#define MAX_ABREV_FORMATTER_LEN {max_char}', ''])
 
         for zone in sorted(self.zones):
             packed_zone = zone.pack(
@@ -396,14 +398,14 @@ class TimeZoneDatabase(object):
             zone_indexes[zone.name] = list(packed_zones).index(packed_zone)
 
         c_buf.append(
-            'const uzone_packed_t zone_defns[%d] = {' % len(packed_zones))
+            f'const uzone_packed_t zone_defns[{len(packed_zones)}] = {{')
         for packed_zone, srcs in packed_zones.items():
             for src_zone in srcs:
                 c_buf.append('// ' + src_zone._src)
             c_buf.append(packed_zone)
         c_buf.append('};')
         h_buf.append(
-            'const uzone_packed_t zone_defns[%d];' % len(packed_zones))
+            f'const uzone_packed_t zone_defns[{len(packed_zones)}];')
 
         return zone_indexes
 
@@ -433,7 +435,7 @@ class TimeZoneDatabase(object):
             name = name.replace(".", '')
             name = name.replace(",", '')
             h_buf.append(("#define UTZ_" + name.upper() + ' ' *
-                          (max_len+4-len(name)) + '&zone_defns[%3d]') % index)
+                          (max_len+4-len(name)) + f'&zone_defns[{index:3}]'))
             name = orig_name.replace('_', ' ')
             for c in name:
                 if c == "'":
@@ -447,8 +449,8 @@ class TimeZoneDatabase(object):
             c_buf.append(("%" + str(max_len*5) + "s, %3d, // %s") %
                          ("'%s'" % "','".join(char), index, name))
         c_buf[c_buf.index(
-            'PLACEHOLDER')] = 'const unsigned char zone_names[%d] = {' % total_char
+            'PLACEHOLDER')] = f'const unsigned char zone_names[{total_char}] = {{'
         c_buf.append('};')
-        h_buf.extend(['', '#define NUM_ZONE_NAMES %d' % len(
-            aliases), '#define MAX_ZONE_NAME_LEN %d' % max_char, ''])
-        h_buf.append('const unsigned char zone_names[%d];' % total_char)
+        h_buf.extend(
+            ['', f'#define NUM_ZONE_NAMES {len(aliases)}', f'#define MAX_ZONE_NAME_LEN {max_char}', ''])
+        h_buf.append(f'const unsigned char zone_names[{total_char}];')
