@@ -7,12 +7,14 @@ eV Quirk
 import click
 import os
 
+from typing import List
 from utz import TimeZoneDatabase
 
 DEFAULT_REGIONS = "africa,asia,australasia,backward,europe,northamerica,pacificnew,southamerica"
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 H_NAME = 'zones.h'
 C_NAME = 'zones.c'
+
 
 @click.command(context_settings=CONTEXT_SETTINGS)
 @click.option('--dir', '-d', default=os.environ.get('UTZ_DATA_DIR', 'tzdata'), help='Path to tzdata dir.')
@@ -23,7 +25,7 @@ C_NAME = 'zones.c'
 @click.option('--whitelist', '-w',
               default=os.environ.get('UTZ_WHITELIST', 'whitelist.txt'),
               help='Zone whitelist.')
-def process(dir, region, include, whitelist):
+def process(dir: str, region: List[str], include: List[str], whitelist: str):
     db = TimeZoneDatabase()
 
     for r in region:
