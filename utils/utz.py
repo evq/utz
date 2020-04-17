@@ -176,8 +176,8 @@ class Rule(Entry):
 
 @total_ordering
 class Zone(Entry):
-    # Zone	NAME	GMTOFF	RULES	FORMAT	[UNTIL]
-    column_names = ('name', 'gmtoff', 'rules', 'format', 'until',)
+    # Zone	NAME	STDOFF	RULES	FORMAT	[UNTIL]
+    column_names = ('name', 'stdoff', 'rules', 'format', 'until',)
     opt_columns = ('until',)
 
     def __eq__(self, other):
@@ -190,7 +190,7 @@ class Zone(Entry):
         if self.until is not None:
             print(self)  # FIXME warnings
 
-        _, h, m = parse_h_m(self.gmtoff)
+        _, h, m = parse_h_m(self.stdoff)
 
         #fmt = self.format
         # if '+' in fmt or '-' in fmt:
