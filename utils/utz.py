@@ -184,7 +184,8 @@ class Zone(Entry):
             print(self)  # FIXME warnings
 
         _, h, m = parse_h_m(self.stdoff)
-
+        if (h < 0):
+            m = -m
         #fmt = self.format
         # if '+' in fmt or '-' in fmt:
         #    fmt = '-'  # we will assume there is no abrev and generate from offset

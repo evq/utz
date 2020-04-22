@@ -230,7 +230,8 @@ void unpack_zone(const uzone_packed_t* zone_in, const char* name, uzone_t* zone_
   zone_out->src = zone_in;
   zone_out->name = name;
 
-  zone_out->offset.minutes = (zone_in->offset_inc_minutes % (60 / OFFSET_INCREMENT)) * OFFSET_INCREMENT;
+  int8_t abs_offset_inc_min = zone_in->offset_inc_minutes >= 0 ? zone_in->offset_inc_minutes : -zone_in->offset_inc_minutes;
+  zone_out->offset.minutes = (abs_offset_inc_min % (60 / OFFSET_INCREMENT)) * OFFSET_INCREMENT;
   zone_out->offset.hours = zone_in->offset_inc_minutes / (60 / OFFSET_INCREMENT);
   zone_out->rules = &(zone_rules[zone_in->rules_idx]);
   zone_out->rules_len = zone_in->rules_len;
