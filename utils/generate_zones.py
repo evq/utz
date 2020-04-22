@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """ Micro timezone generator
 
 eV Quirk
@@ -39,7 +39,7 @@ def process(dir: str, region: List[str], include: List[str], whitelist: str):
 
     db.strip_historical()
 
-    included_zones = []
+    included_zones: List[str] = []
     if whitelist:
         with open(whitelist) as f:
             for zone in f:

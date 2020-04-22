@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """ Library for parsing IANA timezone files and performing transformations
 
@@ -80,9 +80,7 @@ def parse_h_m(time: str) -> Tuple[str, int, int]:
         time = time[:len(time)-2]
 
     if ':' in time:
-        h, m = time.split(':')
-        h = int(h)
-        m = int(m)
+        h, m = [int(s) for s in time.split(':')]
     else:
         h = int(time)
     return z, h, m
@@ -130,24 +128,18 @@ class Rule(Entry):
         elif at_z == 'standard':
             at_z = 1
         elif at_z == 'local':  # we convert all rules specified in local time to standard time
-            if off_H == 0:
-                print(f"  src: {self._src}")
             on_dow, on_dom, at_H, off_H = w_to_s(
                 on_dow, on_dom, at_H, off_H)
             at_z = 1
-        l = 0
-        if self.letter == 'S':
-            l = 1
-        elif self.letter == 'D':
-            l = 2
+        l = 2 if self.letter == 'D' else 1 if self.letter == 'S' else 0
 
         # see utz.h for struct definitions
         return f"{{{_from:3}, {to:3}, {on_dow}, {on_dom:2}, {at_z:2}, {at_H:2}, {int(at_M/15)}, {l}, {in_month:2}, {off_H}}}, // {self._src}"
 
 
 def w_to_s(on_dow, on_dom, at_H, off_H) -> Tuple[int, int, int, int]:
-    """Converts a rule with a local (wall) time to standard time
-    """
+    """ Converts a rule with a local (wall) time to standard time """
+
     if off_H == 0:
         # Rule is for going back to standard time, which means it's currently on savings time.
         # Change back to standard, which means moving an hour back
@@ -230,6 +222,8 @@ class TimeZoneDatabase(object):
         self.links: List[Link] = []
 
     def load(self, f):
+        """ Reads Rules, Zones, and Links from tz data files into python objects """
+
         for line in f:
             try:
                 line = line[:line.index('#')]
@@ -255,6 +249,8 @@ class TimeZoneDatabase(object):
                 self.zones.append(Zone(*tmp))
 
     def dump(self, f) -> None:
+        """ Serializes the Rules, Zones, and Links and writes them to a file """
+
         for rule in self.rules:
             f.write(rule.dumps() + '\n')
         for zone in self.zones:
@@ -264,6 +260,7 @@ class TimeZoneDatabase(object):
 
     def strip_historical(self) -> None:
         """ Strip out historical rules and zones """
+
         rule_group_names = set()
 
         filtered_rules = []
@@ -288,9 +285,9 @@ class TimeZoneDatabase(object):
         self.zones = filtered_zones
 
     def rule_groups(self) -> Dict[str, List[Rule]]:
-        """ Groups rules by name, also prune orphaned rules"""
+        """ Groups rules by name, also prune orphaned rules """
 
-        rule_groups = {}
+        rule_groups: Dict[str, List[Rule]] = {}
         for rule in self.rules:
             if rule.name in rule_groups:
                 rule_groups[rule.name].append(rule)
@@ -304,15 +301,15 @@ class TimeZoneDatabase(object):
                 del rule_groups[group]
         return rule_groups
 
-    def pack(self, h_filename, included_aliases=None) -> Tuple[str, str]:
-        whitelisted_zones = []
+    def pack(self, h_filename: str, included_aliases: List[str] = []) -> Tuple[str, str]:
+        whitelisted_zones: List[str] = []
         for alias in included_aliases:
             for link in self.links:
                 if link.to == alias or link._from == alias:
                     whitelisted_zones.append(link._from)
 
         whitelisted_rules = []
-        zones = []
+        zones: List[Zone] = []
         for zone in self.zones:
             if zone.name in whitelisted_zones:
                 zones.append(zone)
@@ -326,8 +323,8 @@ class TimeZoneDatabase(object):
                 rules.append(ruleset)
         self.rules = rules
 
-        h_filename = h_filename.upper().replace('.', '_')
-        h_buf = [f'#ifndef _{h_filename}', f'#define _{h_filename}', '']
+        h_guard = '_' + h_filename.upper().replace('.', '_')
+        h_buf = [f'#ifndef {h_guard}', f'#define {h_guard}', '']
         c_buf = ['#include "utz.h"', '']
         rule_groups = self.rule_groups()
         rule_group_starts = self._pack_rules(rule_groups, c_buf, h_buf)
@@ -337,7 +334,7 @@ class TimeZoneDatabase(object):
         c_buf.append('')
         self._pack_links(zone_indexes, c_buf, h_buf, included_aliases)
         c_buf.append('')
-        h_buf.append(f'#endif /* _{h_filename} */')
+        h_buf.append(f'#endif /* {h_guard} */')
         return ('\n'.join(c_buf), '\n'.join(h_buf))
 
     def _pack_rules(self, rule_groups: Dict[str, List[Rule]], c_buf: List[str], h_buf: List[str]):
@@ -360,7 +357,7 @@ class TimeZoneDatabase(object):
     def _pack_zones(self, rule_groups, rule_group_starts, c_buf, h_buf):
         packed_zones = OrderedDict()
         packed_formatters = OrderedDict()
-        zone_indexes = {}
+        zone_indexes: Dict[str, int] = {}
 
         for zone in sorted(self.zones):
             fmt = zone.format
@@ -392,9 +389,8 @@ class TimeZoneDatabase(object):
             packed_zone = zone.pack(
                 rule_groups, rule_group_starts, packed_formatters)
             if packed_zone not in packed_zones:
-                packed_zones[packed_zone] = [zone]
-            else:
-                packed_zones[packed_zone].append(zone)
+                packed_zones[packed_zone] = []
+            packed_zones[packed_zone].append(zone)
             zone_indexes[zone.name] = list(packed_zones).index(packed_zone)
 
         c_buf.append(
@@ -409,7 +405,7 @@ class TimeZoneDatabase(object):
 
         return zone_indexes
 
-    def _pack_links(self, zone_indexes, c_buf, h_buf, included_aliases=None):
+    def _pack_links(self, zone_indexes, c_buf, h_buf, included_aliases=[]):
         for link in self.links:
             if link._from in zone_indexes:
                 zone_indexes[link.to] = zone_indexes[link._from]

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """ Create tz database links for major metropolian areas that don't exist in the IANA db
 
 eV Quirk
@@ -25,9 +25,9 @@ def main():
             if columns:
                 city = columns[0].find('a').text
                 country = columns[1].findAll('a')[1].text
-                location = geocoder.geocode('%s, %s' % (city, country))
+                location = geocoder.geocode(f"{city}, {country}")
                 if not location:  # try just searching for just the city
-                    location = geocoder.geocode('%s' % city)
+                    location = geocoder.geocode(city)
                 if location:
                     zone = tz.tzNameAt(location.latitude, location.longitude)
                     if zone:
@@ -39,14 +39,11 @@ def main():
                             alias.append(city)
                             links.append(('Link', zone, '/'.join(alias)))
                         else:
-                            print("%s, %s already present as %s" %
-                                  (city, country, zone))
+                            print(f"{city}, {country} already present as {zone}")
                     else:
-                        print("couldn't find zone for: %s, %s" %
-                              (city, country))
+                        print(f"couldn't find zone for: {city}, {country}")
                 else:
-                    print("couldn't find location for: %s, %s" %
-                          (city, country))
+                    print(f"couldn't find location for: {city}, {country}")
 
     with open('majorcities', 'w') as f:
         f.write('\n'.join(['\t'.join(entry) for entry in links]))
