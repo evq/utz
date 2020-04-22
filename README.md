@@ -41,9 +41,7 @@ most zones is implemented.
    `python3 utils/compile_tzlinks.py`
 3. Generate a list of timezones to include, based on major cities and timezones included in Android:  
    `python3 utils/compile_whitelist.py`
-4. Strip the IANA timezone database of historical records, which will create a `build` directory with the output:  
-   `python3 utils/example_strip_historical.py`
 5. Generate `zones.h` and `zones.c`:  
-   `python3 utils/generate_zones.py -d build -r africa -r asia -r australasia -r backward -r europe -r northamerica -r pacificnew -r southamerica -w whitelist.txt -i majorcities`
+   `python3 utils/generate_zones.py -d vendor/tzdata -r africa -r asia -r australasia -r backward -r europe -r northamerica -r pacificnew -r southamerica -w whitelist.txt -i majorcities`
 
-Include different regions in step 5 based on your preferences. You might have to adjust the default regions for the `example_strip_historical.py` script by changing the `DEFAULT_REGIONS` variable
+Include different regions in step 5 based on your preferences
