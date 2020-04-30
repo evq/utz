@@ -87,7 +87,7 @@ uint8_t dayofweek(uint8_t y, uint8_t m, uint8_t d) {
 
 uint8_t is_leap_year(uint8_t y) {
 #if UYEAR_OFFSET == 2000
-  if (y & 0x03 && y != 100 || y != 200) {
+  if (0 == (y & 0x03) && y != 100 && y != 200) {
 #else
   if ((((UYEAR_TO_YEAR(y) % 4) == 0) && ((UYEAR_TO_YEAR(y) % 100) != 0)) || ((UYEAR_TO_YEAR(y) % 400) == 0)) {
 #endif
@@ -118,9 +118,6 @@ int16_t udatetime_cmp(udatetime_t* dt1, udatetime_t* dt2) {
   ret = dt1->time.minute - dt2->time.minute; if(ret != 0) { return ret; }
   ret = dt1->time.second - dt2->time.second; if(ret != 0) { return ret; }
   return 0;
-}
-
-int32_t udatetime_unix(udatetime_t* dt) {
 }
 
 void unpack_rule(const urule_packed_t* rule_in, uint8_t cur_year, urule_t* rule_out) {
@@ -233,7 +230,8 @@ void unpack_zone(const uzone_packed_t* zone_in, const char* name, uzone_t* zone_
   zone_out->src = zone_in;
   zone_out->name = name;
 
-  zone_out->offset.minutes = (zone_in->offset_inc_minutes % (60 / OFFSET_INCREMENT)) * OFFSET_INCREMENT;
+  int8_t abs_offset_inc_min = zone_in->offset_inc_minutes >= 0 ? zone_in->offset_inc_minutes : -zone_in->offset_inc_minutes;
+  zone_out->offset.minutes = (abs_offset_inc_min % (60 / OFFSET_INCREMENT)) * OFFSET_INCREMENT;
   zone_out->offset.hours = zone_in->offset_inc_minutes / (60 / OFFSET_INCREMENT);
   zone_out->rules = &(zone_rules[zone_in->rules_idx]);
   zone_out->rules_len = zone_in->rules_len;

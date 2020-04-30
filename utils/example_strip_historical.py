@@ -16,7 +16,7 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
 
 @click.command(context_settings=CONTEXT_SETTINGS)
-@click.option('--dir', '-d', default=os.environ.get('TZ_DATA', 'tzdata'), help='Path to tzdata directory.')
+@click.option('--dir', '-d', default=os.environ.get('TZ_DATA', 'vendor/tzdata'), help='Path to tzdata directory.')
 @click.option('--build', '-b', default=os.environ.get('TZ_BUILD', 'build'), help='Path to build directory.')
 def process(dir, build):
     """Sample script to strip historical timezones and rules"""

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """ Create tz database links for major metropolian areas that don't exist in the IANA db
 
 eV Quirk
@@ -6,44 +6,46 @@ eV Quirk
 
 import unicodedata
 
-from BeautifulSoup import BeautifulSoup
+from bs4 import BeautifulSoup
 from geopy.geocoders import Nominatim
 from tzwhere import tzwhere
 
 
 def main():
-    geocoder = Nominatim()
+    geocoder = Nominatim(user_agent="utz", timeout=30)
     tz = tzwhere.tzwhere()
     links = []
 
-    with open('vendor/wikipedia/majormetros.html') as f:
-        soup = BeautifulSoup(f)
-        table = soup.find('table', {'class': "sortable wikitable"})
+    with open('vendor/wikipedia/majorcities.html') as f:
+        soup = BeautifulSoup(f, features="html.parser")
+        table = soup.find(
+            'table', {'class': "sortable wikitable mw-datatable"})
         for row in table.findAll('tr'):
             columns = row.findAll('td')
             if columns:
-                metro = columns[1].find('a').text
-                country = columns[2].find('a').text
-                location = geocoder.geocode('%s, %s' % (metro, country))
-                if not location:  # try just searching for just the metro
-                    location = geocoder.geocode('%s' % metro)
+                city = columns[0].find('a').text
+                country = columns[1].findAll('a')[1].text
+                location = geocoder.geocode(f"{city}, {country}")
+                if not location:  # try just searching for just the city
+                    location = geocoder.geocode(city)
                 if location:
                     zone = tz.tzNameAt(location.latitude, location.longitude)
                     if zone:
-                        metro = unicodedata.normalize('NFD', metro).encode('ascii', 'ignore')
-                        metro = metro.replace(' ', '_')
-                        if zone.split('/')[-1] not in metro:
+                        city = unicodedata.normalize('NFD', city).encode(
+                            'ascii', 'ignore').decode('ascii')
+                        city = city.replace(' ', '_')
+                        if zone.split('/')[-1] not in city:
                             alias = zone.split('/')[:-1]
-                            alias.append(metro)
+                            alias.append(city)
                             links.append(('Link', zone, '/'.join(alias)))
                         else:
-                            print "%s, %s already present as %s" % (metro, country, zone)
+                            print(f"{city}, {country} already present as {zone}")
                     else:
-                        print "couldn't find zone for: %s, %s" % (metro, country)
+                        print(f"couldn't find zone for: {city}, {country}")
                 else:
-                    print "couldn't find location for: %s, %s" % (metro, country)
+                    print(f"couldn't find location for: {city}, {country}")
 
-    with open('majormetros', 'w') as f:
+    with open('majorcities', 'w') as f:
         f.write('\n'.join(['\t'.join(entry) for entry in links]))
 
 

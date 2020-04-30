@@ -5,7 +5,7 @@ DEPS = zones.h
 UTZ_DATA_DIR = vendor/tzdata
 UTZ_REGIONS = africa,asia,australasia,backward,europe,northamerica,pacificnew,southamerica
 UTZ_WHITELIST = whitelist.txt
-UTZ_INCLUDES = majormetros
+UTZ_INCLUDES = majorcities
 export UTZ_DATA_DIR:=$(UTZ_DATA_DIR)
 export UTZ_REGIONS:=$(UTZ_REGIONS)
 export UTZ_INCLUDES:=$(UTZ_INCLUDES)
@@ -18,11 +18,11 @@ zones.h: $(UTZ_DATA_DIR) $(UTZ_INCLUDES) $(UTZ_WHITELIST) utils/generate_zones.p
 	./utils/generate_zones.py
 zones.c: zones.h
 
-whitelist.txt: vendor/android/timezones.xml majormetros utils/compile_whitelist.py 
+whitelist.txt: vendor/android/timezones.xml majorcities utils/compile_whitelist.py
 	./utils/compile_whitelist.py
 
 # The IANA timezone database is missing zone links for many of the worlds largest metropolitan areas
-majormetros:
+majorcities:
 	./utils/compile_tzlinks.py
 
 %.o: %.c $(DEPS)

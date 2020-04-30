@@ -13,7 +13,7 @@ def main():
     tree = ElementTree.parse('vendor/android/timezones.xml')
     zones.update([child.attrib['id'] for child in tree.getroot()])
 
-    with open('majormetros') as f:
+    with open('majorcities') as f:
         for line in f:
             zones.add(line.split('\t')[1].strip())
             zones.add(line.split('\t')[2].strip())

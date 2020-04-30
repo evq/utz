@@ -4,16 +4,17 @@
  *  @author eV Quirk
  */
 
-#include "utz.h"
-#include "zones.h"
+#include "../utz.h"
+#include "../zones.h"
 
 #include <stdio.h>
-void main() {
+void main()
+{
   printf("Total library db size: %d B\n", sizeof(zone_rules) + sizeof(zone_abrevs) + sizeof(zone_defns) + sizeof(zone_names));
 
   udatetime_t dt = {0};
   dt.date.year = 17;
-  dt.date.month = 9;
+  dt.date.month = 1;
   dt.date.dayofmonth = 26;
   dt.time.hour = 1;
   dt.time.minute = 0;

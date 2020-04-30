@@ -12,3 +12,5 @@
 build
 *.o
 example
+.mypy_cache/
+a.out
